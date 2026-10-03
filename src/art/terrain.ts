@@ -37,16 +37,22 @@ function familyOf(tile: number): number {
 }
 
 /** Base colour per family, at neutral grain. */
+// Every family is mixed for the light that actually reaches it. Seawater eats
+// red first, so a sand grain that is warm in air is cool-green a few metres
+// down. The seabed is the dominant family in almost every frame: leaving it at
+// air colour is what kept the whole town reading as a dry village no matter
+// what the grade did on top, because an overlay can tint a warm base but cannot
+// cool it. These values are the floor seen through water, not sand on a beach.
 const BASE: readonly (readonly [number, number, number])[] = [
-  [188, 172, 136], // oolite seabed
-  [24, 72, 96],    // lagoon water
-  [156, 140, 108], // wet packed sand
-  [150, 133, 133], // coral-rock paving
-  [106, 126, 96],  // algae margin along the water
-  [56, 98, 78],    // kelp bed
-  [134, 126, 118], // coral rock
-  [178, 150, 142], // coral bloom over sand
-  [198, 188, 170], // bleached maerl rubble
+  [138, 162, 168], // oolite seabed
+  [20, 64, 92],    // lagoon water
+  [118, 142, 148], // wet packed sand
+  [118, 138, 150], // coral-rock paving
+  [84, 120, 110],  // algae margin along the water
+  [44, 96, 86],    // kelp bed
+  [108, 126, 134], // coral rock
+  [160, 140, 156], // coral bloom over sand
+  [162, 176, 184], // bleached maerl rubble
 ];
 
 export function paintTerrain(map: TownMap): HTMLCanvasElement {
@@ -108,7 +114,7 @@ export function paintTerrain(map: TownMap): HTMLCanvasElement {
       const sw = 8 + Math.floor(r() * 7), sh = 6 + Math.floor(r() * 3);
       if (x >= 0 && mask[y * w + x] === CORAL_PAVE) {
         const light = Math.floor(r() * 26);
-        ctx.fillStyle = `rgb(${156 + light},${140 + light},${140 + light})`;
+        ctx.fillStyle = `rgb(${126 + light},${144 + light},${150 + light})`;
         ctx.beginPath(); ctx.moveTo(x + 1, y); ctx.lineTo(x + sw - 2, y);
         ctx.lineTo(x + sw, y + 1); ctx.lineTo(x + sw - 1, y + sh - 1);
         ctx.lineTo(x + 1, y + sh); ctx.lineTo(x, y + 2); ctx.closePath(); ctx.fill();
@@ -155,9 +161,9 @@ export function paintTerrain(map: TownMap): HTMLCanvasElement {
 
   // Caustics: sunlight refracted through the surface, drifting across the floor.
   ctx.globalCompositeOperation = 'lighter';
-  for (let b = 0; b < 30; b++) {
+  for (let b = 0; b < 70; b++) {
     const y0 = r() * h;
-    ctx.strokeStyle = `rgba(150,214,214,${(0.025 + r() * 0.045).toFixed(3)})`;
+    ctx.strokeStyle = `rgba(150,214,214,${(0.05 + r() * 0.09).toFixed(3)})`;
     ctx.lineWidth = 1 + r() * 3;
     ctx.beginPath();
     for (let x = 0; x <= w; x += 24) ctx.lineTo(x, y0 + Math.sin(x * 0.012 + b) * 22 + Math.sin(x * 0.031 + b * 2) * 8);
