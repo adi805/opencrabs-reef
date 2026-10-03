@@ -95,7 +95,21 @@ try {
   // probes below are the fragile part: a director sample that loses its browser
   // must not be able to take the screenshot down with it. The old ordering put
   // the capture last and a dead browser therefore left no frame at all.
-  await page.waitForTimeout(8000);
+  // Pre-roll the simulation before the capture. The headless renderer runs far
+  // below real time (SwiftShader), so a wall-clock wait advances the sim by a
+  // fraction of a second and residents never leave the town gate: the frame
+  // then shows empty streets and the run reads like a placement bug. Advancing
+  // the sim clock directly makes the frame deterministic and frame-rate
+  // independent, so the witness shows the town as it actually runs.
+  await page.evaluate(() => {
+    const sim = window.__town.sim;
+    for (let i = 0; i < 60 * 15; i++) sim.update(1 / 60);
+  });
+  // Let the scene re-sync its sprites to the advanced state, then shoot.
+  await page.waitForFunction(() => {
+    const scene = window.__town.game.scene.getScene('town');
+    return [...scene.views.values()].some((v) => v.sprite.visible);
+  }, null, { timeout: 60000 }).catch(() => {});
   fs.mkdirSync(path.dirname(shot), { recursive: true });
   const cdp = await page.context().newCDPSession(page);
   const capture = await Promise.race([
