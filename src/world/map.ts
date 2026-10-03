@@ -87,7 +87,13 @@ export function buildTownLocal(): TownMap {
     ground.push([]);
     for (let x = 0; x < LOCAL_W; x++) {
       const v = r();
-      ground[y]!.push(v < 0.68 ? T.grass : v < 0.88 ? T.grass2 : v < 0.96 ? T.grass3 : T.grassTall);
+      // Reef floor, not a lawn: pale oolite sand with kelp beds growing across
+      // it in patches. The dither is what stops the open ground reading as one
+      // flat material, and the kelp (bank family) is drawn with fronds.
+      ground[y]!.push(
+        v < 0.4 ? T.grass : v < 0.6 ? T.grass2 : v < 0.72 ? T.grass3 : v < 0.78 ? T.grassTall
+          : v < 0.9 ? T.shore : v < 0.97 ? T.reeds0 : T.reeds1,
+      );
     }
   }
   const road = new Set<number>();
@@ -178,8 +184,9 @@ export function buildTownLocal(): TownMap {
   }
   // a cobbled approach climbs from the square to the hall, walled either side of the stairs
   for (let y = 11; y <= 15; y++) for (let x = 30; x <= 32; x++) if (ground[y]![x] !== T.stairs) ground[y]![x] = (x + y) % 2 ? T.cobble : T.cobble2;
-  // crop field on the plateau between the library and the hall
-  for (let y = 7; y <= 10; y++) for (let x = 18; x <= 23; x++) ground[y]![x] = (x + y) % 2 ? T.crop : T.crop2;
+  // kelp bed on the plateau between the library and the hall: the old crop
+  // rows are planted kelp now, so the tiles are the reef's, not the farm's.
+  for (let y = 7; y <= 10; y++) for (let x = 18; x <= 23; x++) ground[y]![x] = (x + y) % 2 ? T.tall0 : T.tall1;
   for (let x = 17; x <= 24; x++) { ground[6]![x] = T.fence; ground[11]![x] = T.fence; }
   for (let y = 7; y <= 10; y++) { ground[y]![17] = T.fenceV; ground[y]![24] = T.fenceV; }
   // fenced yards behind two houses
@@ -187,7 +194,7 @@ export function buildTownLocal(): TownMap {
   // soot and trampled ground around the forge, a vegetable garden by the observatory
   for (let y = 23; y <= 24; y++) for (let x = 45; x <= 55; x++) if (ground[y]![x] === T.grass || ground[y]![x] === T.grass2 || ground[y]![x] === T.grass3) ground[y]![x] = r() < 0.6 ? T.soot : T.trampled;
   for (let y = 30; y <= 31; y++) for (let x = 45; x <= 55; x++) if ((ground[y]![x] === T.grass || ground[y]![x] === T.grass2) && r() < 0.5) ground[y]![x] = T.soot;
-  for (let y = 23; y <= 24; y++) for (let x = 12; x <= 15; x++) ground[y]![x] = (x + y) % 2 ? T.crop : T.crop2;
+  for (let y = 23; y <= 24; y++) for (let x = 12; x <= 15; x++) ground[y]![x] = (x + y) % 2 ? T.tall0 : T.tall1;
   for (let y = 22; y <= 25; y++) { ground[y]![11] = T.fenceV; ground[y]![16] = T.fenceV; }
   for (let x = 11; x <= 16; x++) { ground[22]![x] = T.fence; ground[25]![x] = x === 13 ? T.trampled : T.fence; }
   // tavern beer garden: a fenced corner with a gap toward the lane
@@ -354,7 +361,7 @@ export function buildTownLocal(): TownMap {
     // low fences separate the back gardens
     if (i !== 3 && i !== 7) for (let y = 33; y <= 34; y++) ground[y]![h.x + 5] = T.fenceV;
     for (let x = h.x; x <= h.x + 4; x++) if (ground[32]![x] === T.grass || ground[32]![x] === T.grass2 || ground[32]![x] === T.grass3) ground[32]![x] = T.fence;
-    if (i % 2 === 0) for (let y = 33; y <= 34; y++) for (let x = h.x + 1; x <= h.x + 3; x++) ground[y]![x] = (x + y) % 2 ? T.crop : T.crop2;
+    if (i % 2 === 0) for (let y = 33; y <= 34; y++) for (let x = h.x + 1; x <= h.x + 3; x++) ground[y]![x] = (x + y) % 2 ? T.tall0 : T.tall1;
     else for (let x = h.x + 1; x <= h.x + 3; x++) ground[33]![x] = x % 2 ? T.flwYellow0 : T.flwWhite0;
     if (i % 2) props.push({ kind: 'bush', x: (h.x + 5) * TILE - 1, y: 39 * TILE + 2, blocks: [] });
     if (i !== 3 && i !== 7) { ground[38]![h.x + 5] = T.fenceEnd; }
@@ -397,10 +404,45 @@ export function buildTownLocal(): TownMap {
   approach(25, 9, 1, 5); approach(37, 9, 1, 5); approach(35, 28, 3, 5);
   for (const k of approaches) {
     const x = k % LOCAL_W, y = Math.floor(k / LOCAL_W);
-    if ([T.fence, T.fenceV, T.fenceEnd, T.crop, T.crop2].includes(ground[y]![x] as typeof T.fence)) ground[y]![x] = T.trampled;
+    if ([T.fence, T.fenceV, T.fenceEnd].includes(ground[y]![x] as typeof T.fence)) ground[y]![x] = T.trampled;
   }
   for (let i = props.length - 1; i >= 0; i--) {
     if (props[i]!.blocks?.some(p => approaches.has(key(p.x, p.y)))) props.splice(i, 1);
+  }
+
+  // Tide pools. The open floor is not one flat sheet of sand: flood the pockets
+  // nothing stands on or walks through, so the town reads as reef flats crossed
+  // by sandy causeways instead of a village green. Runs before the trees so
+  // nothing is planted in water, and before the cost grid so the flooded tiles
+  // are simply not walkable. A blobby mask keeps the rims rounded rather than
+  // checkerboarded, and each pool gets an algae margin.
+  {
+    const occupied = new Set<number>();
+    for (const k of road) occupied.add(k);
+    for (const k of water) occupied.add(k);
+    for (const k of approaches) occupied.add(k);
+    const mark = (x: number, y: number) => { if (inb(x, y)) occupied.add(key(x, y)); };
+    for (const b of [...buildings, ...homes]) for (let j = b.y - 1; j <= b.y + b.h; j++) for (let i = b.x - 1; i <= b.x + b.w; i++) mark(i, j);
+    for (const s of stations) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) mark(s.tile.x + dx, s.tile.y + dy);
+    for (const p of props) for (const b of p.blocks ?? []) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) mark(b.x + dx, b.y + dy);
+    for (const l of lamps) mark(l.x, l.y);
+    const pools = mulberry(90210);
+    for (let y = 1; y < LOCAL_H - 1; y++) for (let x = 1; x < LOCAL_W - 1; x++) {
+      const k = key(x, y);
+      if (occupied.has(k)) continue;
+      const g = ground[y]![x]!;
+      if (!(g === T.grass || g === T.grass2 || g === T.grass3 || g === T.grassTall)) continue;
+      const blob = Math.sin(x * 0.31) * Math.cos(y * 0.27) + Math.sin((x + y) * 0.13);
+      if (blob < 0.35 || pools() > 0.7) continue;
+      ground[y]![x] = pools() < 0.5 ? T.water : T.water2;
+      water.add(k);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+        const nx = x + dx, ny = y + dy;
+        if (!inb(nx, ny) || water.has(key(nx, ny)) || occupied.has(key(nx, ny))) continue;
+        const gg = ground[ny]![nx]!;
+        if (gg === T.grass || gg === T.grass2 || gg === T.grass3) ground[ny]![nx] = T.shore;
+      }
+    }
   }
 
   // Retire unsupported decoration and its collision footprint together.
@@ -412,7 +454,7 @@ export function buildTownLocal(): TownMap {
     const g = ground[y]![x]!;
     const isRoad = g === T.path || g === T.path2 || g === T.cobble || g === T.cobble2 || g === T.bridge || g === T.stairs
       || g === T.cobbleCracked || g === T.cobbleMoss || g === T.cobbleWorn || g === T.cobbleLeaves || g === T.pathEdge || g === T.pathStones || g === T.pathMud || g === T.pathGrassy;
-    const blocked = g === T.water || g === T.water2 || g === T.cliff || g === T.fence || g === T.fenceV || g === T.fenceEnd || g === T.crop || g === T.crop2 || g === T.stoneWall || g === T.stoneWallV;
+    const blocked = g === T.water || g === T.water2 || g === T.cliff || g === T.fence || g === T.fenceV || g === T.fenceEnd || g === T.stoneWall || g === T.stoneWallV;
     cost[y * LOCAL_W + x] = blocked ? 0 : isRoad ? 1 : g === T.trampled || g === T.soot ? 2 : g === T.shore ? 4 : 3;
   }
   const block = (x: number, y: number) => { if (inb(x, y)) cost[y * LOCAL_W + x] = 0; };

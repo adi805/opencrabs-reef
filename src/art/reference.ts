@@ -52,9 +52,16 @@ export function submerge(canvas: HTMLCanvasElement): HTMLCanvasElement {
     for (let x = 0; x < w; x++) {
       const i = (y * w + x) * 4;
       if (d[i + 3] === 0) continue;
-      d[i] = Math.round(d[i]! * 0.84);
-      d[i + 1] = Math.min(255, Math.round(d[i + 1]! * 0.95) + 3);
-      d[i + 2] = Math.min(255, Math.round(d[i + 2]! * 0.99) + 17 + lift);
+      // Depth grade. A flat multiply only shifts hue; it cannot undo the warm
+      // masonry the atlases bake in. Absorb red hardest, keep green, let blue
+      // survive, then fold in a share of the water colour so no sprite keeps a
+      // terrestrial warmth the palette cannot reach. A little of the original
+      // luminance is kept so shading ramps and lit windows stay readable.
+      const r0 = d[i]!, g0 = d[i + 1]!, b0 = d[i + 2]!;
+      const lum = r0 * 0.3 + g0 * 0.6 + b0 * 0.1;
+      d[i] = Math.min(255, Math.round(r0 * 0.55 + lum * 0.06 + 10));
+      d[i + 1] = Math.min(255, Math.round(g0 * 0.82 + lum * 0.08 + 18 + lift));
+      d[i + 2] = Math.min(255, Math.round(b0 * 0.95 + lum * 0.12 + 48 + lift));
     }
   }
   ctx.putImageData(image, 0, 0);

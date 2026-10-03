@@ -129,18 +129,18 @@ export class TownScene extends Phaser.Scene {
       const baseY = (b.y + b.h) * TILE;
       // a soft pool of shadow under the wall, never a box
       this.add.image((b.x + b.w / 2) * TILE, baseY + 2, 'shadow-tree').setScale((b.w * TILE) / 22, 1.1).setDepth(-5).setAlpha(0.35);
-      if (b.kind === 'forge') this.dayLights.push({ x: (b.x + b.w / 2) * TILE, y: baseY + 6, scale: 1.1, tint: 0xf28b3c, alpha: 0.35 });
-      else if (b.kind === 'tavern') this.dayLights.push({ x: (b.x + b.w / 2) * TILE, y: baseY + 4, scale: 0.9, tint: 0xf2c063, alpha: 0.22 });
-      else if (b.kind === 'house') this.dayLights.push({ x: (b.x + b.w / 2) * TILE, y: baseY - 6, scale: 0.5, tint: 0xf6c15a, alpha: 0.12 });
-      else this.dayLights.push({ x: (b.x + b.w / 2) * TILE, y: baseY - 4, scale: 0.8, tint: 0xf6c15a, alpha: 0.14 });
+      if (b.kind === 'forge') this.dayLights.push({ x: (b.x + b.w / 2) * TILE, y: baseY + 6, scale: 1.1, tint: 0x54d6c8, alpha: 0.4 });
+      else if (b.kind === 'tavern') this.dayLights.push({ x: (b.x + b.w / 2) * TILE, y: baseY + 4, scale: 0.9, tint: 0x7fd0d8, alpha: 0.25 });
+      else if (b.kind === 'house') this.dayLights.push({ x: (b.x + b.w / 2) * TILE, y: baseY - 6, scale: 0.5, tint: 0x9fd8dc, alpha: 0.12 });
+      else this.dayLights.push({ x: (b.x + b.w / 2) * TILE, y: baseY - 4, scale: 0.8, tint: 0x8fd0d8, alpha: 0.15 });
       const image = this.add.image(b.x * TILE - 3, baseY, darkKey).setOrigin(0, 1).setScale(0.5).setDepth(baseY - 4);
       let smoke: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
       if (b.kind === 'forge' || b.kind === 'workshop' || b.kind === 'tavern') {
         const cx = (b.x + b.w) * TILE - (b.kind === 'forge' ? 8 : 11);
         const cy = baseY - lit.height / 2 + (b.kind === 'forge' ? 0 : 4);
         smoke = this.add.particles(cx, cy, 'spark', {
-          speedY: { min: -14, max: -22 }, speedX: { min: -4, max: 4 }, lifespan: 2600,
-          scale: { start: 1.2, end: 3.2 }, alpha: { start: 0.55, end: 0 }, tint: 0x9a9aa0,
+          speedY: { min: -22, max: -34 }, speedX: { min: -4, max: 4 }, lifespan: 2600,
+          scale: { start: 0.7, end: 2.6 }, alpha: { start: 0.5, end: 0 }, tint: [0x9fe3dc, 0x7fc7d8, 0xcfeee9],
           frequency: 260, quantity: 1, emitting: false,
         }).setDepth(baseY - 3);
       }
@@ -172,13 +172,13 @@ export class TownScene extends Phaser.Scene {
       }
       if (placed.kind === 'lamp') {
         this.lampPositions.push({ x, y: foot - h + 8 });
-        this.dayLights.push({ x, y: foot, scale: 0.85, tint: 0xf2c063, alpha: 0.3 });
+        this.dayLights.push({ x, y: foot, scale: 0.85, tint: 0x8fd8dc, alpha: 0.3 });
       }
       if (placed.kind === 'fountain') {
         this.add.particles(x, foot - h * 0.33, 'spark', {
-          speedX: { min: -9, max: 9 }, speedY: { min: -10, max: -4 }, gravityY: 20,
-          lifespan: 600, frequency: 160, scale: { start: 0.35, end: 0.1 },
-          alpha: { start: 0.7, end: 0 }, tint: [0xa9d0d1, 0xe5e9d7],
+          speedX: { min: -6, max: 6 }, speedY: { min: -18, max: -34 }, gravityY: 0,
+          lifespan: 1800, frequency: 120, scale: { start: 0.5, end: 1.6 },
+          alpha: { start: 0.6, end: 0 }, tint: [0x9fe3dc, 0x7fc7d8, 0xcfeee9],
         }).setDepth(foot + 1);
       }
       if (placed.kind === 'fountain' || placed.kind === 'chapel' || placed.kind === 'cart' || placed.kind.startsWith('marketStall')) {
@@ -208,8 +208,8 @@ export class TownScene extends Phaser.Scene {
     }
     for (const c of map.idleSmoke ?? []) {
       this.add.particles(c.x, c.y, 'spark', {
-        speedY: { min: -6, max: -10 }, speedX: { min: -2, max: 3 }, lifespan: 3200,
-        scale: { start: 0.8, end: 2.4 }, alpha: { start: 0.3, end: 0 }, tint: 0xa9a9ae, frequency: 700, quantity: 1,
+        speedY: { min: -14, max: -22 }, speedX: { min: -2, max: 3 }, lifespan: 3200,
+        scale: { start: 0.7, end: 2.4 }, alpha: { start: 0.28, end: 0 }, tint: [0x9fe3dc, 0x7fc7d8, 0xcfeee9], frequency: 700, quantity: 1,
       }).setDepth(c.y + 200);
     }
 
@@ -222,8 +222,8 @@ export class TownScene extends Phaser.Scene {
       x: { min: 0, max: map.grid.w * TILE }, y: { min: 0, max: map.grid.h * TILE },
       speedY: { min: -16, max: -30 }, speedX: { min: -5, max: 5 },
       lifespan: { min: 2600, max: 5200 },
-      scale: { start: 0.4, end: 0.12 }, alpha: { start: 0.22, end: 0 },
-      frequency: 380, quantity: 1, tint: [0x9fe3dc, 0x7fc7d8, 0xcfeee9],
+      scale: { start: 0.7, end: 0.2 }, alpha: { start: 0.42, end: 0 },
+      frequency: 240, quantity: 1, tint: [0x9fe3dc, 0x7fc7d8, 0xcfeee9],
     }).setDepth(90000);
 
     this.sparks = this.add.particles(0, 0, 'spark', {
@@ -237,8 +237,8 @@ export class TownScene extends Phaser.Scene {
     // Water grade: the whole town sits under a shallow sea. Red light is
     // absorbed first with depth, so the multiply layer is cyan and the additive
     // layer is a faint sun shaft coming down through the surface.
-    this.add.rectangle(0, 0, MAP_W * TILE, MAP_H * TILE, 0x9fd4e0, 1).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.MULTIPLY).setDepth(197500).setAlpha(0.34);
-    this.add.rectangle(0, 0, MAP_W * TILE, MAP_H * TILE, 0x6fd6d0, 1).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.ADD).setDepth(197501).setAlpha(0.05);
+    this.add.rectangle(0, 0, MAP_W * TILE, MAP_H * TILE, 0x7fc0d4, 1).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.MULTIPLY).setDepth(197500).setAlpha(0.48);
+    this.add.rectangle(0, 0, MAP_W * TILE, MAP_H * TILE, 0x6fd6d0, 1).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.ADD).setDepth(197501).setAlpha(0.09);
     this.stamp = this.make.image({ key: 'glow', add: false });
     this.night = this.add.renderTexture(0, 0, MAP_W * TILE, MAP_H * TILE).setOrigin(0, 0).setDepth(200000);
     this.night.setBlendMode(Phaser.BlendModes.MULTIPLY);
