@@ -2,7 +2,7 @@ import type { Facing, RoleClass, WorkStyle } from '../art/characters';
 import { hashString } from '../art/painter';
 import { TILE } from '../art/tiles';
 import type { TownEvent } from '../live/events';
-import { tileCenter, type Building, type Station, type TownMap } from '../world/map';
+import { LOCAL_H, LOCAL_W, TOWN_OX, TOWN_OY, tileCenter, type Building, type Station, type TownMap } from '../world/map';
 import { findPath, nearestWalkable, type Point } from '../world/pathfind';
 import { IDLE_TARGET, THINK_TARGET, targetForTool, type Place, type ToolTarget } from './toolMap';
 import { REACTION_DURATION } from '../art/characters';
@@ -343,7 +343,13 @@ export class TownSim {
   private makeResident(id: string, name: string, role: RoleClass, kind: ResidentKind, parentId: string | null): Resident {
     const isChild = id.includes('/child/');
     const home = this.map.homes[hashString(parentId ?? id) % this.map.homes.length]!;
-    const pos = tileCenter(this.map.entrance);
+    // A live town's residents are already out on the streets, not queued at
+    // the gate. Seeding every one at `entrance` left the town empty for the
+    // first minute while they all walked in from the far west edge, off
+    // camera. Main sessions now start on a walkable town tile; children are
+    // placed the same way and path from there to their parent's station.
+    const guess = { x: TOWN_OX + 2 + Math.floor(Math.random() * (LOCAL_W - 4)), y: TOWN_OY + 2 + Math.floor(Math.random() * (LOCAL_H - 4)) };
+    const pos = tileCenter(nearestWalkable(this.map.grid, guess, 12) ?? this.map.entrance);
     return {
       id, kind, parentId, name, role, title: null, home, isChild, memory: false, post: null,
       x: pos.x, y: pos.y, facing: 'up', anim: 'stand', style: 'desk', state: 'arriving',
