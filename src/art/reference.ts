@@ -39,7 +39,7 @@ const authored = (r: Rect): Rect => [
  * Applied last, after the unlit-window test has already run, because that test
  * keys off warm yellow ranges this transform would otherwise hide.
  */
-function submerge(canvas: HTMLCanvasElement): HTMLCanvasElement {
+export function submerge(canvas: HTMLCanvasElement): HTMLCanvasElement {
   const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
   const { width: w, height: h } = canvas;
   const image = ctx.getImageData(0, 0, w, h);

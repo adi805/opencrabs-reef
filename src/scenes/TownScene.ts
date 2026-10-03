@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { ReferenceArt, REFERENCE_ATLASES } from '../art/reference';
+import { paintReefFlora, paintReefNub, reefFloraSway } from '../art/reef';
 import { paintTerrain } from '../art/terrain';
 import { paintStructures } from '../art/structures';
 import { PROP_ANCHORS, TREE_ANCHORS } from '../world/dressing';
@@ -94,8 +95,8 @@ export class TownScene extends Phaser.Scene {
     for (const e of ['ok', 'fail', 'think', 'zzz', 'wait'] as const) add(`emote-${e}`, paintEmote(e));
 
     // Detailed sprites retain their authored feet; navigation is still in world pixels.
-    for (let i = 0; i < 6; i++) add(`art-tree${i}`, art.tree(i));
-    add('art-bush', art.bush());
+    for (let i = 0; i < 6; i++) add(`art-tree${i}`, paintReefFlora(i));
+    add('art-bush', paintReefNub(0));
     add('art-fountain', art.prop(0, 82, 78)); add('art-chapel', art.prop(1, 76, 80));
     add('art-marketStall0', art.prop(2, 54, 46)); add('art-marketStall1', art.prop(3, 54, 46));
     add('art-bridge', art.prop(4, 70, 35)); add('art-rock', art.prop(5, 25, 18));
@@ -112,11 +113,11 @@ export class TownScene extends Phaser.Scene {
       ['telescope', 3, 23, 27], ['postbox', 4, 13, 21], ['desk', 5, 24, 18], ['stall', 6, 24, 17],
     ];
     for (const [key, index, w, h] of equipment) add(`art-${key}`, art.equipment(index, w, h));
-    add('art-hedge', art.bush());
+    add('art-hedge', paintReefNub(1));
     add('art-dock', art.prop(4, 30, 18));
 
     this.add.image(0, 0, 'terrain').setOrigin(0, 0).setScale(0.5).setDepth(-11);
-    add('structures', paintStructures(map, art));
+    add('structures', paintStructures(map));
     this.add.image(0, 0, 'structures').setOrigin(0, 0).setScale(0.5).setDepth(-2);
 
     // buildings
@@ -161,11 +162,10 @@ export class TownScene extends Phaser.Scene {
       const img = this.add.image(x, foot, key).setOrigin(0.5, 1).setScale(0.5).setDepth(foot - (placed.kind === 'tree' ? 6 : 2));
       const variation = hashString(`${placed.x},${placed.y}`);
       if (placed.kind === 'tree') {
-        // Kelp, not deciduous: the foliage tint multiplies the sprite, so a
-        // green-teal cast reads as weed rather than sunlit leaves.
-        img.setTint([0x9fd8c0, 0x7fc0b4, 0xb8d8a8, 0x8fd0c8][variation % 4]!);
+        // Coral and kelp are painted in the colours they should end up, so the
+        // cool foliage tint that rescued deciduous leaves would only muddy them.
         img.setFlipX(variation % 3 === 0);
-        this.swaying.push({ obj: img, phase: variation % 100 / 100, amount: 0.008 });
+        this.swaying.push({ obj: img, phase: variation % 100 / 100, amount: reefFloraSway(placed.variant ?? 0) });
         this.add.image(x - 5, foot - 4, 'shadow-tree').setScale(w / 23, 1.5).setDepth(-4).setAlpha(0.65);
       } else if (placed.kind === 'bush' || placed.kind === 'hedge' || placed.kind === 'banner') {
         this.swaying.push({ obj: img, phase: variation % 100 / 100, amount: placed.kind === 'banner' ? 0.025 : 0.015 });
