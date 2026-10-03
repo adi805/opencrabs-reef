@@ -91,25 +91,47 @@ try {
     { timeout: 120000 },
   );
 
+  // Capture the frame FIRST. The witness is the point of this gate, and the
+  // probes below are the fragile part: a director sample that loses its browser
+  // must not be able to take the screenshot down with it. The old ordering put
+  // the capture last and a dead browser therefore left no frame at all.
+  await page.waitForTimeout(8000);
+  fs.mkdirSync(path.dirname(shot), { recursive: true });
+  const cdp = await page.context().newCDPSession(page);
+  const capture = await Promise.race([
+    cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false }),
+    new Promise((_resolve, reject) => setTimeout(
+      () => reject(new Error('screenshot budget of 120s exhausted')), 120000,
+    )),
+  ]);
+  fs.writeFileSync(shot, Buffer.from(capture.data, 'base64'));
+  console.log(`screenshot ${path.relative(repo, shot)} ${fs.statSync(shot).size} bytes`);
+
   // Director stability probe. verify:world clicks #director with Playwright's
   // default actionability check, which requires the element's bounding box to be
   // unchanged across consecutive frames. If the toolbar reflows every second the
   // button never settles and that click times out at 30s - which reads as a
   // harness flake but is really a layout bug. Sample the box, do not assume.
-  const boxes = [];
-  for (let i = 0; i < 6; i++) {
-    boxes.push(await page.locator('#director').boundingBox().catch(() => null));
-    await page.waitForTimeout(1000);
+  // The probe is advisory: it answers "does the toolbar reflow". Losing the
+  // browser while sampling it must not fail a run whose frame is already saved.
+  try {
+    const boxes = [];
+    for (let i = 0; i < 6; i++) {
+      boxes.push(await page.locator('#director').boundingBox().catch(() => null));
+      await page.waitForTimeout(1000);
+    }
+    // Compare against the same filtered array: indexing the raw `boxes` here would
+    // pair a sampled box with the wrong neighbour and invent movement.
+    const sampled = boxes.filter(Boolean);
+    const moved = sampled.length > 1 && sampled.slice(1).some(
+      (b, i) => Math.abs(b.x - sampled[i].x) > 0.5 || Math.abs(b.y - sampled[i].y) > 0.5,
+    );
+    const firstBox = sampled[0];
+    const lastBox = sampled[sampled.length - 1];
+    console.log(`DIRECTOR n=${sampled.length} x=${firstBox?.x}->${lastBox?.x} y=${firstBox?.y}->${lastBox?.y} moved=${moved}`);
+  } catch (e) {
+    console.warn('director probe skipped: ' + String(e).split('\n')[0]);
   }
-  // Compare against the same filtered array: indexing the raw `boxes` here would
-  // pair a sampled box with the wrong neighbour and invent movement.
-  const sampled = boxes.filter(Boolean);
-  const moved = sampled.length > 1 && sampled.slice(1).some(
-    (b, i) => Math.abs(b.x - sampled[i].x) > 0.5 || Math.abs(b.y - sampled[i].y) > 0.5,
-  );
-  const firstBox = sampled[0];
-  const lastBox = sampled[sampled.length - 1];
-  console.log(`DIRECTOR n=${sampled.length} x=${firstBox?.x}->${lastBox?.x} y=${firstBox?.y}->${lastBox?.y} moved=${moved}`);
 
   const state = await page.evaluate(() => {
     const scene = window.__town.game.scene.getScene('town');
@@ -174,20 +196,6 @@ try {
     screenshot: path.relative(repo, shot),
   }, null, 2));
   for (const e of errors.slice(0, 8)) console.error(e.slice(0, 300));
-
-  // Playwright's screenshot path waits on document.fonts.ready before it
-  // captures, and under SwiftShader on a contended box that wait is what blew
-  // the 30s budget. Capture through CDP instead - no font wait - with a budget
-  // this host can actually meet.
-  fs.mkdirSync(path.dirname(shot), { recursive: true });
-  const cdp = await page.context().newCDPSession(page);
-  const capture = await Promise.race([
-    cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false }),
-    new Promise((_resolve, reject) => setTimeout(
-      () => reject(new Error('screenshot budget of 120s exhausted')), 120000,
-    )),
-  ]);
-  fs.writeFileSync(shot, Buffer.from(capture.data, 'base64'));
 
   assert.deepEqual(missing, [], 'every required art frame must be baked');
   assert.ok(state.art.length >= 30, `expected the full prop/furniture/equipment set, got ${state.art.length}`);
