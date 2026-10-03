@@ -43,7 +43,7 @@ loopback only. The public demo runs on synthetic data and cannot reach a real ag
 Nothing in this fork has been rewritten yet. The fork, the history sanitisation and the atlas
 recompression are done; the OpenCrabs event source, the underwater theme, the reduced server and
 the CI deploy are the remaining tasks, tracked in [`PROGRESS.md`](PROGRESS.md) and on the
-[OpenCrabs Reef Trello board](https://trello.com/b/REPLACE_ME).
+OpenCrabs Trello board (board **Crabs**, card "🌊 OpenCrabs Reef — kota bawah laut buat OpenCrabs").
 
 Upstream's own build and verify scripts are still present and still describe the Hermes plugin
 that this fork no longer ships. Treat them as reference until task 5 replaces them.
