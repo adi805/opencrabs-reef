@@ -161,7 +161,9 @@ export class TownScene extends Phaser.Scene {
       const img = this.add.image(x, foot, key).setOrigin(0.5, 1).setScale(0.5).setDepth(foot - (placed.kind === 'tree' ? 6 : 2));
       const variation = hashString(`${placed.x},${placed.y}`);
       if (placed.kind === 'tree') {
-        img.setTint([0xe2ebe1, 0xc4d9d1, 0xe2dfb9, 0xd2e3d0][variation % 4]!);
+        // Kelp, not deciduous: the foliage tint multiplies the sprite, so a
+        // green-teal cast reads as weed rather than sunlit leaves.
+        img.setTint([0x9fd8c0, 0x7fc0b4, 0xb8d8a8, 0x8fd0c8][variation % 4]!);
         img.setFlipX(variation % 3 === 0);
         this.swaying.push({ obj: img, phase: variation % 100 / 100, amount: 0.008 });
         this.add.image(x - 5, foot - 4, 'shadow-tree').setScale(w / 23, 1.5).setDepth(-4).setAlpha(0.65);
@@ -232,9 +234,11 @@ export class TownScene extends Phaser.Scene {
     for (const l of this.dayLights) {
       this.add.image(l.x, l.y, 'glow').setScale(l.scale, l.scale * 0.55).setTint(l.tint).setAlpha(l.alpha).setBlendMode(Phaser.BlendModes.ADD).setDepth(-2);
     }
-    // golden grade: the whole world sits in warm late light
-    this.add.rectangle(0, 0, MAP_W * TILE, MAP_H * TILE, 0xf6dfb4, 1).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.MULTIPLY).setDepth(197500).setAlpha(0.3);
-    this.add.rectangle(0, 0, MAP_W * TILE, MAP_H * TILE, 0xffc070, 1).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.ADD).setDepth(197501).setAlpha(0.015);
+    // Water grade: the whole town sits under a shallow sea. Red light is
+    // absorbed first with depth, so the multiply layer is cyan and the additive
+    // layer is a faint sun shaft coming down through the surface.
+    this.add.rectangle(0, 0, MAP_W * TILE, MAP_H * TILE, 0x9fd4e0, 1).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.MULTIPLY).setDepth(197500).setAlpha(0.34);
+    this.add.rectangle(0, 0, MAP_W * TILE, MAP_H * TILE, 0x6fd6d0, 1).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.ADD).setDepth(197501).setAlpha(0.05);
     this.stamp = this.make.image({ key: 'glow', add: false });
     this.night = this.add.renderTexture(0, 0, MAP_W * TILE, MAP_H * TILE).setOrigin(0, 0).setDepth(200000);
     this.night.setBlendMode(Phaser.BlendModes.MULTIPLY);

@@ -32,29 +32,34 @@ export function paintTerrain(map: TownMap): HTMLCanvasElement {
     weights[0]! += edgeNoise;
     let kind = 0;
     for (let k = 1; k < 5; k++) if (weights[k]! > weights[kind]!) kind = k;
-    // A narrow, irregular turf margin replaces the rectangular sand tiles.
+    // A narrow, irregular algae margin replaces the rectangular sand tiles.
     if (kind === 4) kind = weights[3]! > 0.08 ? 4 : 0;
     const grain = (r() - 0.5) * (kind === 3 ? 4 : 15);
     const broad = Math.sin(x * 0.027 + Math.sin(y * 0.018) * 2) * 7 + Math.sin(y * 0.043 + x * 0.011) * 6 + Math.sin(x * 0.31 + Math.sin(y * 0.25) * 2) * 3;
-    const c = kind === 3 ? [24, 74, 92] : kind === 2 ? [97, 86, 88] : kind === 1 ? [151, 133, 96] : kind === 4 ? [104, 116, 84] : [56, 92, 78];
+    // Reef seabed ramp. The old ramp was grass green over tan dirt, so the town
+    // read as a land village. A sea floor is pale oolite sand, wet packed sand
+    // for the walked paths, cool limestone for the plaza, and an algae mat on
+    // the banks.
+    const c = kind === 3 ? [22, 68, 90] : kind === 2 ? [104, 112, 116] : kind === 1 ? [163, 146, 112] : kind === 4 ? [112, 126, 100] : [186, 170, 134];
     const i = (y * w + x) * 4;
     for (let ch = 0; ch < 3; ch++) d[i + ch] = c[ch]! + grain + broad;
     d[i + 3] = 255; mask[y * w + x] = kind;
   }
   ctx.putImageData(pixels, 0, 0);
   // Irregular cobbles span tile boundaries. Each stone has its own mortar,
+  // cool shadow, cool upper face, and occasional coralline joint.
   // cool shadow, warm upper face, and occasional moss-filled joint.
   for (let y = 0, row = 0; y < h; y += 9, row++) {
     for (let x = row % 2 ? -6 : 0; x < w;) {
       const sw = 8 + Math.floor(r() * 7), sh = 6 + Math.floor(r() * 3);
       if (x >= 0 && mask[y * w + x] === 2) {
         const light = Math.floor(r() * 24);
-        ctx.fillStyle = `rgb(${118 + light},${104 + light},${106 + light})`;
+        ctx.fillStyle = `rgb(${112 + light},${118 + light},${122 + light})`;
         ctx.beginPath(); ctx.moveTo(x + 1, y); ctx.lineTo(x + sw - 2, y);
         ctx.lineTo(x + sw, y + 1); ctx.lineTo(x + sw - 1, y + sh - 1);
         ctx.lineTo(x + 1, y + sh); ctx.lineTo(x, y + 2); ctx.closePath(); ctx.fill();
         ctx.fillStyle = 'rgba(206,226,220,.20)'; ctx.fillRect(x + 1, y, sw - 3, 1);
-        if (r() < 0.13) { ctx.fillStyle = '#3f6b5e'; ctx.fillRect(x, y + sh, 2, 1); }
+        if (r() < 0.13) { ctx.fillStyle = '#8f6272'; ctx.fillRect(x, y + sh, 2, 1); }
       }
       x += sw + 1;
     }
@@ -62,16 +67,16 @@ export function paintTerrain(map: TownMap): HTMLCanvasElement {
   for (let i = 0; i < w * h / 14; i++) {
     const x = Math.floor(r() * w), y = Math.floor(r() * h), k = mask[y * w + x];
     if (k === 0) {
-      ctx.fillStyle = r() < 0.5 ? '#4f7d63' : '#2f5244';
+      ctx.fillStyle = r() < 0.5 ? '#d6c49a' : '#a8926a';
       ctx.fillRect(x, y, 1, 1 + Math.floor(r() * 3));
-      if (r() < 0.09) { ctx.fillStyle = ['#c96f5a', '#b8a6c4', '#d8b46a'][Math.floor(r() * 3)]!; ctx.fillRect(x, y - 1, 2, 2); }
+      if (r() < 0.09) { ctx.fillStyle = ['#e0846c', '#cfa0c0', '#f0c882'][Math.floor(r() * 3)]!; ctx.fillRect(x, y - 1, 2, 2); }
     } else if (k === 1 && r() < 0.18) {
-      ctx.fillStyle = r() < 0.5 ? '#c2b189' : '#8a7a58'; ctx.fillRect(x, y, 2, 1);
+      ctx.fillStyle = r() < 0.5 ? '#cdbb96' : '#94825f'; ctx.fillRect(x, y, 2, 1);
     } else if (k === 3 && r() < 0.25) {
       ctx.fillStyle = 'rgba(150,214,214,.28)'; ctx.fillRect(x, y, 2 + Math.floor(r() * 5), 1);
     } else if (k === 4 && r() < 0.4) {
       for (let j = 0; j < 4; j++) {
-        ctx.strokeStyle = j % 2 ? '#4f8a6f' : '#2f5b52';
+        ctx.strokeStyle = j % 2 ? '#4a9a86' : '#1f5f5a';
         ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + j * 2 - 3, y - 8 - r() * 18); ctx.stroke();
       }
     }
