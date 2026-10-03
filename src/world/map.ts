@@ -432,8 +432,20 @@ export function buildTownLocal(): TownMap {
       if (occupied.has(k)) continue;
       const g = ground[y]![x]!;
       if (!(g === T.grass || g === T.grass2 || g === T.grass3 || g === T.grassTall)) continue;
+      // Broad lagoon basins, so water is the medium the town sits in rather
+      // than a canal threading a green. Each sits in ground that lies open
+      // between the lanes; the occupancy guard above keeps every road, station
+      // and footprint dry, so the pools read as flooded reef flats and the
+      // causeways between them stay walkable.
+      const basin =
+        Math.hypot((x - 9) / 5.5, (y - 17.5) / 3) < 1 ||
+        Math.hypot((x - 51) / 6, (y - 17.5) / 3) < 1 ||
+        Math.hypot((x - 21) / 5, (y - 6.5) / 4.5) < 1 ||
+        Math.hypot((x - 41) / 5, (y - 6.5) / 4.5) < 1 ||
+        Math.hypot((x - 10) / 7, (y - 32.5) / 2.5) < 1 ||
+        Math.hypot((x - 50) / 7, (y - 32.5) / 2.5) < 1;
       const blob = Math.sin(x * 0.31) * Math.cos(y * 0.27) + Math.sin((x + y) * 0.13);
-      if (blob < 0.35 || pools() > 0.7) continue;
+      if (!basin && (blob < 0.2 || pools() > 0.6)) continue;
       ground[y]![x] = pools() < 0.5 ? T.water : T.water2;
       water.add(k);
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
@@ -505,7 +517,7 @@ export function buildTownLocal(): TownMap {
     props,
     homes,
     lamps,
-    entrance: { x: 1, y: 40 },
+    entrance: { x: 20, y: 40 },
   };
 }
 
