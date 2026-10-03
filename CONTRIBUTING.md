@@ -1,6 +1,12 @@
 # Contributing
 
-Hermes Town accepts focused bug fixes and improvements that preserve the privacy and product boundaries in `AGENTS.md`, `PRODUCT.md`, and `LIVE_BRIDGE.md`.
+OpenCrabs Reef accepts focused bug fixes and improvements that preserve the
+privacy and product boundaries in `AGENTS.md`, `PRODUCT.md`, and `LIVE_BRIDGE.md`.
+
+This fork removed the Hermes plugin and its `integrations/` tree: the town reads
+`~/.opencrabs/opencrabs.db` directly through a read-only poller. There is no
+plugin to package, install, or validate, and nothing here talks to a Hermes
+runtime.
 
 ## Development
 
@@ -9,27 +15,40 @@ npm ci
 npm run dev
 ```
 
-Use `http://127.0.0.1:5173/?agents=demo&hour=17` for visual development. Demo mode must remain visibly distinct from live Hermes activity.
+Use `http://127.0.0.1:5173/?agents=demo&hour=17` for visual development. Demo
+mode must remain visibly distinct from live activity.
 
-## Packaged runtime
+To see the live bridge against your own database:
 
-End users install the prebuilt `integrations/hermes-town-plugin/runtime/` directory at a reviewed commit. After frontend, server, dependency, or build-configuration changes, run `npm run package:plugin` and include the refreshed runtime in the same change. A clean build followed by `npm run check:package` must pass; do not fix drift by editing the manifest alone. No install-time downloads or self-updates are permitted.
+```bash
+npm run reef -- --db ~/.opencrabs/opencrabs.db --replay 400   # snapshot as JSON
+npm run reef:serve                                           # loopback server on 4188
+```
 
-For integration with an installed Hermes environment, run `python3 tests/verify-native-hermes.py --hermes /path/to/hermes`. It installs into a temporary home, enables the plugin, exercises the actual native command dispatcher and lifecycle registry with synthetic events, verifies public privacy, and stops its own server. It never calls an LLM or touches your normal profile.
+The poller opens the database read-only and proves the guard at startup by
+provoking a write, so pointing it at a live database is safe by construction.
+It never emits session titles, working directories, or raw session ids.
 
 ## Before opening a pull request
 
 ```bash
-npm run test:contracts
+npm run test:contracts   # poller privacy + live-bridge contract
 npm run build
-npm run test:onboarding
-npx playwright install chromium
-npm run verify:characters
-npm run verify:world
-npm run verify:onboarding
-hermes plugins doctor integrations/hermes-town-plugin --ci
+npm run verify:map       # the town recognises the tools this runtime calls
 ```
 
-Do not commit credentials, raw Hermes identifiers, prompts, arguments, commands, paths, outputs, responses, goals, summaries, transcripts, session databases, runtime journals, or screenshots containing private data.
+The browser checks need a Playwright download and a software renderer, so they
+are advisory in CI but worth running locally when the art or layout changes:
 
-Use small commits with a conventional subject such as `fix:`, `feat:`, `docs:`, or `test:`. Sign off commits with `git commit -s`.
+```bash
+npx playwright install chromium
+npm run verify:textures  # writes docs/evidence/m2-reef.png
+npm run verify:characters
+```
+
+Do not commit credentials, raw session identifiers, prompts, arguments,
+commands, paths, outputs, responses, goals, summaries, transcripts, session
+databases, runtime journals, or screenshots containing private data.
+
+Use small commits with a conventional subject such as `fix:`, `feat:`, `docs:`,
+or `test:`.
