@@ -3,6 +3,8 @@ import { ReferenceArt, REFERENCE_ATLASES } from '../art/reference';
 import { paintReefFlora, paintReefNub, reefFloraSway } from '../art/reef';
 import { paintTerrain } from '../art/terrain';
 import { paintStructures } from '../art/structures';
+import { paintReefBuilding } from '../art/reefBuildings';
+import { paintReefProp } from '../art/reefProps';
 import { PROP_ANCHORS, TREE_ANCHORS } from '../world/dressing';
 import {
   CHARACTER_BASELINE, CHARACTER_SCALE, FRAME_COUNT, FRAME_H, FRAME_W, idleFrame, lookFor, paintCharacterSheet, paintEmote,
@@ -97,10 +99,10 @@ export class TownScene extends Phaser.Scene {
     // Detailed sprites retain their authored feet; navigation is still in world pixels.
     for (let i = 0; i < 6; i++) add(`art-tree${i}`, paintReefFlora(i));
     add('art-bush', paintReefNub(0));
-    add('art-fountain', art.prop(0, 82, 78)); add('art-chapel', art.prop(1, 76, 80));
-    add('art-marketStall0', art.prop(2, 54, 46)); add('art-marketStall1', art.prop(3, 54, 46));
-    add('art-bridge', art.prop(4, 70, 35)); add('art-rock', art.prop(5, 25, 18));
-    add('art-lamp', art.prop(6, 11, 35)); add('art-cart', art.prop(7, 32, 23));
+    add('art-fountain', paintReefProp(0, 82, 78)); add('art-chapel', paintReefProp(1, 76, 80));
+    add('art-marketStall0', paintReefProp(2, 54, 46)); add('art-marketStall1', paintReefProp(3, 54, 46));
+    add('art-bridge', paintReefProp(4, 70, 35)); add('art-rock', paintReefProp(5, 25, 18));
+    add('art-lamp', paintReefProp(6, 11, 35)); add('art-cart', paintReefProp(7, 32, 23));
 
     const furniture: [string, number, number, number?][] = [
       ['bench', 0, 24, 16], ['porchBench', 0, 18, 12], ['flowerBox', 1, 25, 16], ['planter', 1, 22, 15],
@@ -114,7 +116,7 @@ export class TownScene extends Phaser.Scene {
     ];
     for (const [key, index, w, h] of equipment) add(`art-${key}`, art.equipment(index, w, h));
     add('art-hedge', paintReefNub(1));
-    add('art-dock', art.prop(4, 30, 18));
+    add('art-dock', paintReefProp(4, 30, 18));
 
     this.add.image(0, 0, 'terrain').setOrigin(0, 0).setScale(0.5).setDepth(-11);
     add('structures', paintStructures(map));
@@ -122,8 +124,8 @@ export class TownScene extends Phaser.Scene {
 
     // buildings
     for (const b of [...map.buildings, ...map.homes]) {
-      const lit = art.building(b.kind, b.w * TILE + 6, true);
-      const dark = art.building(b.kind, b.w * TILE + 6, false);
+      const lit = paintReefBuilding(b.kind, b.w * TILE + 6, true);
+      const dark = paintReefBuilding(b.kind, b.w * TILE + 6, false);
       const litKey = `b-${b.id}-lit`, darkKey = `b-${b.id}-dark`;
       add(litKey, lit); add(darkKey, dark);
       const baseY = (b.y + b.h) * TILE;
@@ -222,8 +224,8 @@ export class TownScene extends Phaser.Scene {
       x: { min: 0, max: map.grid.w * TILE }, y: { min: 0, max: map.grid.h * TILE },
       speedY: { min: -16, max: -30 }, speedX: { min: -5, max: 5 },
       lifespan: { min: 2600, max: 5200 },
-      scale: { start: 0.7, end: 0.2 }, alpha: { start: 0.42, end: 0 },
-      frequency: 240, quantity: 1, tint: [0x9fe3dc, 0x7fc7d8, 0xcfeee9],
+      scale: { start: 1.4, end: 0.3 }, alpha: { start: 0.5, end: 0 },
+      frequency: 90, quantity: 1, tint: [0x9fe3dc, 0x7fc7d8, 0xcfeee9],
     }).setDepth(90000);
 
     this.sparks = this.add.particles(0, 0, 'spark', {
@@ -237,8 +239,8 @@ export class TownScene extends Phaser.Scene {
     // Water grade: the whole town sits under a shallow sea. Red light is
     // absorbed first with depth, so the multiply layer is cyan and the additive
     // layer is a faint sun shaft coming down through the surface.
-    this.add.rectangle(0, 0, MAP_W * TILE, MAP_H * TILE, 0x7fc0d4, 1).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.MULTIPLY).setDepth(197500).setAlpha(0.48);
-    this.add.rectangle(0, 0, MAP_W * TILE, MAP_H * TILE, 0x6fd6d0, 1).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.ADD).setDepth(197501).setAlpha(0.09);
+    this.add.rectangle(0, 0, MAP_W * TILE, MAP_H * TILE, 0x59aec8, 1).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.MULTIPLY).setDepth(197500).setAlpha(0.56);
+    this.add.rectangle(0, 0, MAP_W * TILE, MAP_H * TILE, 0x3fa8c8, 1).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.ADD).setDepth(197501).setAlpha(0.13);
     this.stamp = this.make.image({ key: 'glow', add: false });
     this.night = this.add.renderTexture(0, 0, MAP_W * TILE, MAP_H * TILE).setOrigin(0, 0).setDepth(200000);
     this.night.setBlendMode(Phaser.BlendModes.MULTIPLY);
