@@ -15,6 +15,7 @@
     "reef": "node server/crabsPoll.mjs",
     "reef:serve": "node server/reefServer.mjs",
     "verify:map": "node scripts/verify-toolmap.mjs",
+    "shot": "node scripts/reef-shot.mjs",
     "install:plugin": "node scripts/install-hermes-town-plugin.mjs",
     "typecheck": "tsc -b",
     "test:contracts": "python3 tests/verify-plugin-privacy.py && node tests/verify-server-contract.mjs && node tests/verify-cron-seed.mjs",
