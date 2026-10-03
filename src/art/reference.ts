@@ -30,6 +30,37 @@ const authored = (r: Rect): Rect => [
   Math.round(r[2] * SHEET_SCALE), Math.round(r[3] * SHEET_SCALE),
 ];
 
+/**
+ * The atlases are authored for dry land, so their colours are baked into pixels
+ * no palette key can reach. Water fixes that: depth absorbs red first, so the
+ * art loses warmth, keeps green, gains blue, and picks up a little light from
+ * above since the surface is the only sun there is.
+ *
+ * Applied last, after the unlit-window test has already run, because that test
+ * keys off warm yellow ranges this transform would otherwise hide.
+ */
+function submerge(canvas: HTMLCanvasElement): HTMLCanvasElement {
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+  const { width: w, height: h } = canvas;
+  const image = ctx.getImageData(0, 0, w, h);
+  const d = image.data;
+  for (let y = 0; y < h; y++) {
+    // A shallow gradient: the top of a sprite catches a few more units of
+    // surface light than its base, which is what separates one submerged object
+    // from a wall of identical blue paste.
+    const lift = (1 - y / Math.max(1, h)) * 7;
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (d[i + 3] === 0) continue;
+      d[i] = Math.round(d[i]! * 0.84);
+      d[i + 1] = Math.min(255, Math.round(d[i + 1]! * 0.95) + 3);
+      d[i + 2] = Math.min(255, Math.round(d[i + 2]! * 0.99) + 17 + lift);
+    }
+  }
+  ctx.putImageData(image, 0, 0);
+  return canvas;
+}
+
 /** Import the authored chroma-key sheets once; render at two texels per world pixel. */
 export class ReferenceArt {
   private sheets = new Map<string, HTMLCanvasElement>();
@@ -127,7 +158,7 @@ export class ReferenceArt {
       }
       ctx.putImageData(pixels, 0, 0);
     }
-    return canvas;
+    return submerge(canvas);
   }
 
   tree(variant: number): HTMLCanvasElement {
@@ -137,17 +168,17 @@ export class ReferenceArt {
       [[0, 530, 490, 494], 30, 37], [[490, 530, 555, 494], 61, 62],
     ];
     const [rect, w, h] = frames[variant % frames.length]!;
-    return this.frame('vegetation', authored(rect), w, h);
+    return submerge(this.frame('vegetation', authored(rect), w, h));
   }
 
-  bush(): HTMLCanvasElement { return this.frame('vegetation', authored([1050, 600, 486, 424]), 24, 16); }
+  bush(): HTMLCanvasElement { return submerge(this.frame('vegetation', authored([1050, 600, 486, 424]), 24, 16)); }
 
   furniture(index: number, width: number, height?: number): HTMLCanvasElement {
-    return this.cell('furniture', index, 4, 4, width, height);
+    return submerge(this.cell('furniture', index, 4, 4, width, height));
   }
 
   equipment(index: number, width: number, height?: number): HTMLCanvasElement {
-    return this.cell('equipment', index, 4, 2, width, height);
+    return submerge(this.cell('equipment', index, 4, 2, width, height));
   }
 
   private cell(sheet: string, index: number, columns: number, rows: number, width: number, height?: number): HTMLCanvasElement {
@@ -159,6 +190,6 @@ export class ReferenceArt {
 
   prop(index: number, width: number, height?: number): HTMLCanvasElement {
     const col = index % 4, row = Math.floor(index / 4);
-    return this.frame('props', authored([Math.round(col * 443.5), row * 444, col % 2 ? 443 : 444, row ? 443 : 444]), width, height);
+    return submerge(this.frame('props', authored([Math.round(col * 443.5), row * 444, col % 2 ? 443 : 444, row ? 443 : 444]), width, height));
   }
 }
