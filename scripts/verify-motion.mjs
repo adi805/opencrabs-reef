@@ -3,7 +3,10 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
-const server = await createServer({ server: { host: '127.0.0.1', port: 5194, strictPort: true } });
+// Same port policy as verify-characters: an abandoned run must not become a
+// blocker for the next one, so allow an override and let vite move if taken.
+const port = Number(process.env.REEF_VERIFY_PORT ?? 5194);
+const server = await createServer({ server: { host: '127.0.0.1', port, strictPort: false } });
 await server.listen();
 let browser;
 try {
@@ -12,8 +15,15 @@ try {
   const errors = [];
   page.on('pageerror', e=>errors.push(e.message));
   await page.route('**/api/town/**',route=>route.abort());
-  await page.goto('http://127.0.0.1:5194/');
-  await page.waitForFunction(()=>window.__town?.game.scene.getScene('town')?.textures.exists('art-tree0'));
+  await page.goto(server.resolvedUrls?.local?.[0] ?? `http://127.0.0.1:${port}/`);
+  // Same boot budget as verify-characters: a contended box starves the town
+  // scene well past playwright's 30s default, and a slow boot is not a
+  // character-motion failure.
+  await page.waitForFunction(
+    ()=>window.__town?.game.scene.getScene('town')?.textures.exists('art-tree0'),
+    null,
+    { timeout: 120000 },
+  );
   const result = await page.evaluate(async()=>{
     const { TownSim, STATION_SETTLE_SECONDS } = await import('/src/sim/town.ts');
     const art = await import('/src/art/characters.ts');
