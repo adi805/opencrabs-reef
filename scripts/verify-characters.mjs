@@ -3,7 +3,10 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
-const server = await createServer({ server: { host: '127.0.0.1', port: 5193, strictPort: true } });
+// A fixed port with strictPort turns every abandoned run into a blocker for the
+// next one, so take an override and let vite move if the port is already taken.
+const port = Number(process.env.REEF_VERIFY_PORT ?? 5193);
+const server = await createServer({ server: { host: '127.0.0.1', port, strictPort: false } });
 await server.listen();
 let browser;
 try {
@@ -12,7 +15,9 @@ try {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.route('**/api/town/**', route => route.abort());
-  await page.goto('http://127.0.0.1:5193/');
+  // Read the address back: with strictPort off, 5193 may have been taken.
+  const origin = server.resolvedUrls?.local?.[0] ?? `http://127.0.0.1:${port}/`;
+  await page.goto(origin);
   await page.waitForFunction(() => window.__town?.game.scene.getScene('town')?.textures.exists('art-tree0'));
   const result = await page.evaluate(async () => {
     const art = await import('/src/art/characters.ts');

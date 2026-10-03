@@ -3,8 +3,13 @@ import { mkdir } from 'node:fs/promises';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
-const server = await createServer({ server: { host: '127.0.0.1', port: 5191, strictPort: true } });
+// The port is configurable because several sessions may verify this repo at once;
+// a fixed strictPort turns a shared machine into a source of false failures, and a
+// goto that hardcodes the port loads a page some other run is serving.
+const port = Number(process.env.REEF_VERIFY_PORT ?? 5191);
+const server = await createServer({ server: { host: '127.0.0.1', port, strictPort: false } });
 await server.listen();
+const origin = server.resolvedUrls?.local?.[0] ?? `http://127.0.0.1:${port}/`;
 let browser;
 try {
   const channel = process.env.PLAYWRIGHT_CHANNEL?.trim();
@@ -16,7 +21,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 1672, height: 940 } });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('http://127.0.0.1:5191/?agents=demo&hour=17');
+  await page.goto(`${origin}?agents=demo&hour=17`);
   await page.waitForFunction(() => window.__town?.game.scene.getScene('town')?.textures.exists('art-tree0'));
 
   const audit = await page.evaluate(async () => {
@@ -75,7 +80,7 @@ try {
   await page.getByRole('button', { name: 'Town view', exact: true }).click();
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   const initialZoom = await zoom();
-  await page.getByRole('button', { name: 'Library', exact: true }).click();
+  await page.getByRole('button', { name: 'Coral Archive', exact: true }).click();
   await page.waitForFunction(() => Math.abs(window.__town.game.scene.getScene('town').cameras.main.zoom - 2.5) < 0.01);
   await page.getByRole('button', { name: 'Town view', exact: true }).click();
   assert.ok(Math.abs(await zoom() - initialZoom) < 0.01);
@@ -121,12 +126,12 @@ try {
   await page.locator('#pose-review').screenshot({ path: 'output/playwright/resident-poses.png' });
   await page.locator('#pose-review').evaluate(el => el.remove());
 
-  await page.goto('http://127.0.0.1:5191/?agents=demo&hour=22');
+  await page.goto(`${origin}?agents=demo&hour=22`);
   await page.waitForFunction(() => window.__town?.game.scene.getScene('town')?.textures.exists('art-tree0'));
   await page.screenshot({ path: 'output/playwright/world-night.png' });
   // Offline live mode must stay empty rather than substitute demo residents.
   await page.route('**/api/town/**', route => route.abort());
-  await page.goto('http://127.0.0.1:5191/');
+  await page.goto(origin);
   await page.waitForFunction(() => window.__town?.game.scene.getScene('town')?.textures.exists('art-tree0'));
   assert.equal(await page.evaluate(() => window.__town.sim.residents.size), 0);
   await page.waitForFunction(() => document.querySelector('#status').textContent.includes('disconnected'));
