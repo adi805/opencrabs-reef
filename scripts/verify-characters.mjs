@@ -18,7 +18,14 @@ try {
   // Read the address back: with strictPort off, 5193 may have been taken.
   const origin = server.resolvedUrls?.local?.[0] ?? `http://127.0.0.1:${port}/`;
   await page.goto(origin);
-  await page.waitForFunction(() => window.__town?.game.scene.getScene('town')?.textures.exists('art-tree0'));
+  // Same boot check the shot script uses, with the same budget: the town scene
+  // takes far longer than playwright's 30s default to register its art on a
+  // contended box, and a starved boot is not a character-art failure.
+  await page.waitForFunction(
+    () => window.__town?.game.scene.getScene('town')?.textures.exists('art-tree0'),
+    null,
+    { timeout: 120000 },
+  );
   const result = await page.evaluate(async () => {
     const art = await import('/src/art/characters.ts');
     const checks = [];
