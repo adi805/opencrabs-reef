@@ -409,10 +409,6 @@ export function buildTownLocal(): TownMap {
   };
   for (const b of buildings) approach(b.x - 1, b.y + b.h, b.w + 2, 3);
   approach(25, 9, 1, 5); approach(37, 9, 1, 5); approach(35, 28, 3, 5);
-  for (const k of approaches) {
-    const x = k % LOCAL_W, y = Math.floor(k / LOCAL_W);
-    if ([T.fence, T.fenceV, T.fenceEnd].includes(ground[y]![x] as typeof T.fence)) ground[y]![x] = T.trampled;
-  }
   for (let i = props.length - 1; i >= 0; i--) {
     if (props[i]!.blocks?.some(p => approaches.has(key(p.x, p.y)))) props.splice(i, 1);
   }
@@ -471,9 +467,9 @@ export function buildTownLocal(): TownMap {
   const cost = new Uint8Array(LOCAL_W * LOCAL_H);
   for (let y = 0; y < LOCAL_H; y++) for (let x = 0; x < LOCAL_W; x++) {
     const g = ground[y]![x]!;
-    const isRoad = g === T.path || g === T.path2 || g === T.cobble || g === T.cobble2 || g === T.bridge || g === T.stairs
-      || g === T.cobbleCracked || g === T.cobbleMoss || g === T.cobbleWorn || g === T.cobbleLeaves || g === T.pathEdge || g === T.pathStones || g === T.pathMud || g === T.pathGrassy;
-    const blocked = g === T.water || g === T.water2 || g === T.cliff || g === T.fence || g === T.fenceV || g === T.fenceEnd || g === T.stoneWall || g === T.stoneWallV;
+    const isRoad = g === T.path || g === T.path2 || g === T.bridge || g === T.stairs
+      || g === T.pathEdge || g === T.pathStones || g === T.pathMud || g === T.pathGrassy;
+    const blocked = g === T.water || g === T.water2 || g === T.cliff;
     cost[y * LOCAL_W + x] = blocked ? 0 : isRoad ? 1 : g === T.trampled || g === T.soot ? 2 : g === T.shore ? 4 : 3;
   }
   const block = (x: number, y: number) => { if (inb(x, y)) cost[y * LOCAL_W + x] = 0; };
@@ -497,7 +493,7 @@ export function buildTownLocal(): TownMap {
     for (let dy = -1; dy <= 1 && ok; dy++) for (let dx = -1; dx <= 1 && ok; dx++) {
       if (!inb(x + dx, y + dy)) { ok = false; break; }
       const gg = ground[y + dy]![x + dx]!;
-      if (treeCells.has(key(x + dx, y + dy)) || road.has(key(x + dx, y + dy)) || gg === T.cliff || gg === T.stairs || gg === T.cliffTop || gg === T.fence || gg === T.fenceV) ok = false;
+      if (treeCells.has(key(x + dx, y + dy)) || road.has(key(x + dx, y + dy)) || gg === T.cliff || gg === T.stairs || gg === T.cliffTop) ok = false;
     }
     for (const b of [...buildings, ...homes]) if (x >= b.x - 1 && x < b.x + b.w + 1 && y >= b.y - 3 && y < b.y + b.h + 2) ok = false;
     for (const s of stations) if (Math.abs(s.tile.x - x) <= 1 && Math.abs(s.tile.y - y) <= 1) ok = false;
