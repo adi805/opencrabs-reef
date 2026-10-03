@@ -211,6 +211,19 @@ export class TownScene extends Phaser.Scene {
       }).setDepth(c.y + 200);
     }
 
+    // Ambient bubbles. Everything here is under water, so the frame should never
+    // be perfectly still. A zone emitter over the whole map, kept sparse and
+    // faint: atmosphere, not weather. Depth 90000 puts them in front of the town
+    // because they rise between the camera and the reef, and below the forge
+    // sparks at 99999 so a struck anvil still reads as the brightest thing there.
+    this.add.particles(0, 0, 'spark', {
+      x: { min: 0, max: map.grid.w * TILE }, y: { min: 0, max: map.grid.h * TILE },
+      speedY: { min: -16, max: -30 }, speedX: { min: -5, max: 5 },
+      lifespan: { min: 2600, max: 5200 },
+      scale: { start: 0.4, end: 0.12 }, alpha: { start: 0.22, end: 0 },
+      frequency: 380, quantity: 1, tint: [0x9fe3dc, 0x7fc7d8, 0xcfeee9],
+    }).setDepth(90000);
+
     this.sparks = this.add.particles(0, 0, 'spark', {
       speed: { min: 20, max: 50 }, angle: { min: 200, max: 340 }, gravityY: 120, lifespan: { min: 250, max: 500 },
       scale: { start: 0.8, end: 0.2 }, tint: [0xffd36b, 0xf28b3c, 0xffffff], emitting: false, quantity: 3,
