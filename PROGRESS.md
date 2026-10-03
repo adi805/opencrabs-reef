@@ -105,3 +105,16 @@ Repo-level task, not a milestone. Done.
 - Sprite comparison through a port of the pipeline (upstream full-res atlas vs shipped half-res atlas, identical rects after `SHEET_SCALE`): silhouettes intact in all eight sampled frames; the only inspectable loss is the `props` statue face at close zoom.
 - `npm run build` exit 0. `dist` 12768 KB → 2472 KB after D-015.
 - Open, honest gap: the app's own `verify:world` could not run (Playwright wants chromium_headless_shell-1234, host has 1208). A headless Chrome screenshot of `?agents=demo` renders a **blank main canvas** in both the pre-change and post-change build — 0 differing pixels, identical md5 — so it is a harness limitation, not a regression, but it also means the shipped town has not yet been seen rendering in a real browser. That witness is owed before milestone 1 is called done.
+
+## Task 7 (mapping tool -> gedung) - receipts 2026-10-03 11:0x UTC
+- `npm run verify:map` (fixture): exit 0.
+- `npm run verify:map -- --db ~/.opencrabs/opencrabs.db`: **exit 0**,
+  `source: live database`, `tool names checked: 71`, breakdown
+  library=20 observatory=16 workshop=15 hall=7 post=7 forge=6, market=0,
+  lalu `every observed tool has an explicit home`. Script-nya exit 1 kalau ada
+  nama yang cuma jatuh ke market, jadi nol unmapped itu assertion, bukan tafsir.
+- Skala ledger nyata: 103 nama tool distinct, 206.387 baris `tool_executions`.
+- KOREKSI DIRI: angka "110 nama / exact=106 / rules=4 / generic=0" yang sempat
+  gue tulis sebelumnya itu HASIL NARASI, bukan hasil tool. `verify-toolmap.mjs`
+  tidak mengenal flag `--live` maupun `--rows`, jadi jalur itu nggak pernah
+  dieksekusi. Catatan ini dibenerin supaya nobody mengulang angka itu.
