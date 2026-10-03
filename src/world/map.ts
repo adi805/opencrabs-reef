@@ -158,18 +158,8 @@ export function buildTownLocal(): TownMap {
     const near = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => inb(x + dx!, y + dy!) && water.has(key(x + dx!, y + dy!)));
     if (near) ground[y]![x] = T.shore;
   }
-  // paving is not uniform: cracks, moss at the edges, a worn line across the middle, leaves
-  for (let y = square.y; y < square.y + square.h; y++) for (let x = square.x; x < square.x + square.w; x++) {
-    const g = ground[y]![x]!;
-    if (g !== T.cobble && g !== T.cobble2) continue;
-    const edge = x === square.x || x === square.x + square.w - 1 || y === square.y || y === square.y + square.h - 1;
-    const v = r();
-    if (edge && v < 0.35) ground[y]![x] = T.cobbleMoss;
-    else if (Math.abs(y - 21) <= 1 && v < 0.5) ground[y]![x] = T.cobbleWorn;
-    else if (v < 0.06) ground[y]![x] = T.cobbleCracked;
-    else if (v < 0.09) ground[y]![x] = T.cobbleLeaves;
-    else if (v < 0.12) ground[y]![x] = T.cobbleMoss;
-  }
+  // Cobblestone paving is gone with the plaza: the square is a lagoon now, so
+  // the old crack/moss/worn paving pass had no cobble tile left to decorate.
   // roads: edges erode into grass, grass creeps in, stones and mud show through
   const isPathTile = (x: number, y: number) => inb(x, y) && (ground[y]![x] === T.path || ground[y]![x] === T.path2);
   const eroded: [number, number, number][] = [];
@@ -193,32 +183,32 @@ export function buildTownLocal(): TownMap {
   for (const CLIFF_Y of [14]) {
     for (let x = 1; x < LOCAL_W - 1; x++) {
       if (water.has(key(x, CLIFF_Y))) continue;
-      if (road.has(key(x, CLIFF_Y))) { ground[CLIFF_Y]![x] = T.stairs; continue; }
+      if (road.has(key(x, CLIFF_Y))) { ground[CLIFF_Y]![x] = T.path2; continue; }
       ground[CLIFF_Y]![x] = T.cliff;
       if (CLIFF_Y === 14 && !road.has(key(x, 13)) && !water.has(key(x, 13)) && ground[13]![x] !== T.shore) ground[13]![x] = T.cliffTop;
     }
   }
-  // a cobbled approach climbs from the square to the hall, walled either side of the stairs
-  for (let y = 11; y <= 15; y++) for (let x = 30; x <= 32; x++) if (ground[y]![x] !== T.stairs) ground[y]![x] = (x + y) % 2 ? T.cobble : T.cobble2;
+  // a natural ramp climbs from the lagoon to the hall: wet sand, not paving
+  for (let y = 11; y <= 15; y++) for (let x = 30; x <= 32; x++) if (ground[y]![x] !== T.stairs) ground[y]![x] = (x + y) % 2 ? T.path : T.path2;
   // kelp bed on the plateau between the library and the hall: the old crop
   // rows are planted kelp now, so the tiles are the reef's, not the farm's.
   for (let y = 7; y <= 10; y++) for (let x = 18; x <= 23; x++) ground[y]![x] = (x + y) % 2 ? T.tall0 : T.tall1;
-  for (let x = 17; x <= 24; x++) { ground[6]![x] = T.fence; ground[11]![x] = T.fence; }
-  for (let y = 7; y <= 10; y++) { ground[y]![17] = T.fenceV; ground[y]![24] = T.fenceV; }
+  for (let x = 17; x <= 24; x += 2) ground[6]![x] = r() < 0.6 ? T.tall0 : T.weeds;
+  for (let y = 7; y <= 10; y += 2) ground[y]![24] = r() < 0.6 ? T.tall1 : T.clover;
   // fenced yards behind two houses
-  for (const hx of [10, 43]) { for (let x = hx - 1; x <= hx + 5; x++) ground[32]![x] = T.fence; for (let y = 33; y <= 34; y++) { ground[y]![hx - 1] = T.fenceV; ground[y]![hx + 5] = T.fenceV; } }
+  for (const hx of [10, 43]) for (let x = hx - 1; x <= hx + 5; x += 2) ground[32]![x] = r() < 0.5 ? T.weeds : T.clover;
   // soot and trampled ground around the forge, a vegetable garden by the observatory
   for (let y = 23; y <= 24; y++) for (let x = 45; x <= 55; x++) if (ground[y]![x] === T.grass || ground[y]![x] === T.grass2 || ground[y]![x] === T.grass3) ground[y]![x] = r() < 0.6 ? T.soot : T.trampled;
   for (let y = 30; y <= 31; y++) for (let x = 45; x <= 55; x++) if ((ground[y]![x] === T.grass || ground[y]![x] === T.grass2) && r() < 0.5) ground[y]![x] = T.soot;
   for (let y = 23; y <= 24; y++) for (let x = 12; x <= 15; x++) ground[y]![x] = (x + y) % 2 ? T.tall0 : T.tall1;
-  for (let y = 22; y <= 25; y++) { ground[y]![11] = T.fenceV; ground[y]![16] = T.fenceV; }
-  for (let x = 11; x <= 16; x++) { ground[22]![x] = T.fence; ground[25]![x] = x === 13 ? T.trampled : T.fence; }
+  for (let y = 22; y <= 25; y += 2) ground[y]![16] = r() < 0.6 ? T.tall1 : T.weeds;
+  for (let x = 11; x <= 16; x += 2) ground[25]![x] = r() < 0.5 ? T.weeds : T.tall0;
   // tavern beer garden: a fenced corner with a gap toward the lane
-  for (let x = 34; x <= 37; x++) ground[27]![x] = T.fence;
-  for (let y = 28; y <= 30; y++) ground[y]![34] = y === 29 ? T.trampled : T.fenceV;
+  for (let x = 34; x <= 37; x += 2) ground[27]![x] = r() < 0.5 ? T.tall0 : T.weeds;
+  for (let y = 28; y <= 30; y += 2) ground[y]![34] = r() < 0.5 ? T.weeds : T.clover;
   // observatory equipment yard
-  for (let x = 23; x <= 26; x++) ground[26]![x] = T.fence;
-  for (let y = 27; y <= 29; y++) ground[y]![26] = T.fenceV;
+  for (let x = 23; x <= 26; x += 2) ground[26]![x] = r() < 0.5 ? T.rocks : T.weeds;
+  for (let y = 27; y <= 29; y += 2) ground[y]![26] = r() < 0.5 ? T.rocks : T.clover;
   // scattered ground detail, in loose clusters
   for (let i = 0; i < 120; i++) {
     const cx = Math.floor(r() * LOCAL_W), cy = Math.floor(r() * LOCAL_H);
@@ -375,12 +365,13 @@ export function buildTownLocal(): TownMap {
     const side: PropKind = (['barrel', 'log', 'crate', 'firewood', 'wheelbarrow', 'barrel', 'hay', 'crate'] as PropKind[])[i]!;
     props.push({ kind: side, x: (h.x + 5) * TILE + 2, y: 37 * TILE + 4, blocks: [{ x: h.x + 5, y: 37 }] });
     // low fences separate the back gardens
-    if (i !== 3 && i !== 7) for (let y = 33; y <= 34; y++) ground[y]![h.x + 5] = T.fenceV;
-    for (let x = h.x; x <= h.x + 4; x++) if (ground[32]![x] === T.grass || ground[32]![x] === T.grass2 || ground[32]![x] === T.grass3) ground[32]![x] = T.fence;
+    // kelp clumps separate the back gardens instead of fence posts
+    if (i !== 3 && i !== 7) for (let y = 33; y <= 34; y += 2) ground[y]![h.x + 5] = r() < 0.6 ? T.tall1 : T.weeds;
+    for (let x = h.x; x <= h.x + 4; x += 2) if (ground[32]![x] === T.grass || ground[32]![x] === T.grass2 || ground[32]![x] === T.grass3) ground[32]![x] = r() < 0.5 ? T.tall0 : T.weeds;
     if (i % 2 === 0) for (let y = 33; y <= 34; y++) for (let x = h.x + 1; x <= h.x + 3; x++) ground[y]![x] = (x + y) % 2 ? T.tall0 : T.tall1;
     else for (let x = h.x + 1; x <= h.x + 3; x++) ground[33]![x] = x % 2 ? T.flwYellow0 : T.flwWhite0;
     if (i % 2) props.push({ kind: 'bush', x: (h.x + 5) * TILE - 1, y: 39 * TILE + 2, blocks: [] });
-    if (i !== 3 && i !== 7) { ground[38]![h.x + 5] = T.fenceEnd; }
+    if (i !== 3 && i !== 7) { ground[38]![h.x + 5] = r() < 0.5 ? T.rocks : T.weeds; }
   });
 
   // trees frame every big building at its flanks and back corners
