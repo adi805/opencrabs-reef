@@ -119,3 +119,21 @@ recorded here.
 - Date: 2026-10-03 · Status: Accepted
 - Measured: `sourcemap: true` made `dist` 12768 KB, of which 10541 KB is one map file for a 1306 KB bundle. With maps off, `dist` is 2472 KB.
 - Reason: the demo is a read-only render; nobody is stepping through a minified Phaser frame on a low-RAM VPS, and the map is the payload that would have to be shipped or stripped anyway.
+
+## D-016 The reef translates the land palette, it does not replace it
+
+- Date: 2026-10-03 · Status: Accepted
+- `src/art/palette.ts` is the single colour source for 33 tile colours, so a theme change belongs there and nowhere else. Each key keeps its identity and its relative value; families move together (turf → kelp, topsoil → reef sand, cobble → cut coral-rock, lamp oil → bioluminescence). Contrast ratios that make small sprites legible survive because they are ratios, not absolute hues.
+- Residents were deliberately kept warm (shell reds/oranges in `HAIR`/`CLOTH`) against a cold ground plane; a warm crowd on a warm town reads as mud, and the whole point of the town view is picking out one resident at a glance.
+
+## D-017 Atlas art is graded at load, not repainted
+
+- Date: 2026-10-03 · Status: Accepted
+- Buildings, trees, props, furniture and equipment carry colour baked into PNG pixels that no palette key can reach. Repainting them means new art; `submerge()` in `src/art/reference.ts` applies the physics of depth instead: red is absorbed first, so the art loses warmth, keeps green, gains blue, with a few units of extra light at the top of each sprite because the surface is the only sun.
+- Placement matters: the grade is applied after the unlit-window test, which keys off warm yellow ranges. Grading earlier would make every building look permanently unoccupied, turning an aesthetic change into a behavioural one.
+
+## D-018 Plugin-era tests are retired with the plugin, not left red
+
+- Date: 2026-10-03 · Status: Proposed (executes with task 8)
+- `tests/verify-server-contract.mjs` and `tests/verify-cron-seed.mjs` both load `integrations/hermes-town-plugin/__init__.py`, deleted in task 1 (D-002: the Reef has no plugin). They fail with `FileNotFoundError`, which is the correct diagnosis: they test a component this fork does not ship.
+- Rule applied: do not delete tests that cover shipped code; do not keep tests that cover removed code. The replacement gate is `npm run verify:map` plus the Reef server checks, which cover the path the Reef actually uses. Scripts that exist only to package the plugin (`install:plugin`, `package:plugin`, `check:package`, `serve:live`, `verify:onboarding`) go in the same pass, with `npm test` rewritten to run what survives.
