@@ -84,3 +84,12 @@ Known evidence gaps carried forward:
 Next exact action: implement the read-only poller with the cursor described by
 FR-001 and the Data Contracts table, then run the AC-001 and AC-002 evidence
 harnesses against a copy of `~/.opencrabs/opencrabs.db`.
+
+## 2026-10-03 - server Reef live (task 5)
+
+- Endpoint: `/api/reef/snapshot`, `/api/reef/events` (SSE), `/api/reef/health`, plus static build.
+- `curl -o /dev/null -w %{http_code} http://127.0.0.1:4188/api/reef/snapshot` -> `200`.
+- `ss -ltn | grep 4188` -> `LISTEN 0 511 127.0.0.1:4188 0.0.0.0:*`, count of `0.0.0.0:4188` = `0`, count of `[::]:4188` = `0`.
+- SSE held open `12.021s` against the live database, `463` `event: tick` frames and one `hello` frame, `108625` bytes, curl exit `0`.
+- Snapshot on that run: `status: live`, contract `crabs-town.snapshot.v1`, `452` events in the ring, `8` residents, cursor `205447`, poll interval `1000 ms`.
+- Diagram: `docs/diagrams/architecture.png` (750x2110, md5 `4dfe10d300e03a64031177a2ea403fb9`) rendered from `docs/diagrams/architecture.mmd`, inspected with the vision model: no clipped text, no overlapping boxes, arrows present.
