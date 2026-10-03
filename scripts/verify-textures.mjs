@@ -104,7 +104,11 @@ try {
     // threshold invented from the palette would just be a guess with exit codes.
     let channels = null;
     if (lit.length) {
-      const src = scene.textures.get(lit[0]).source[0].data;
+      // Phaser's TextureSource carries no pixel buffer: `.data` is undefined and
+      // reading `.width` off it threw. getSourceImage() returns the canvas or
+      // image the texture was built from, which is what drawImage accepts.
+      const src = scene.textures.get(lit[0]).getSourceImage();
+      if (!src) throw new Error('building texture ' + lit[0] + ' has no source image');
       const c = document.createElement('canvas');
       c.width = src.width; c.height = src.height;
       const cx = c.getContext('2d');
@@ -117,7 +121,18 @@ try {
       }
       if (n) channels = { texture: lit[0], opaquePixels: n, r: Math.round(r / n), g: Math.round(g / n), b: Math.round(b / n) };
     }
-    return { art: art.sort(), lit: lit.length, total: keys.length, channels };
+    // Residents are reported, not asserted. The HUD can claim live sessions
+    // while the scene draws none, and a whole frame of empty streets is a
+    // rendering bug, not a lull. Count what the scene actually put on screen.
+    const sim = window.__town.sim;
+    const residents = [...sim.residents.values()].map((r) => ({
+      id: r.id, kind: r.kind, x: Math.round(r.x), y: Math.round(r.y), state: r.state,
+    }));
+    const drawn = [...scene.views.values()].filter((v) => v.sprite.visible).length;
+    return {
+      art: art.sort(), lit: lit.length, total: keys.length, channels,
+      residents: residents.length, residentsDrawn: drawn, residentSample: residents.slice(0, 3),
+    };
   });
 
   const missing = REQUIRED_ART.filter((k) => !state.art.includes(k));
@@ -130,6 +145,9 @@ try {
     totalTextures: state.total,
     missing,
     channels: state.channels,
+    residents: state.residents,
+    residentsDrawn: state.residentsDrawn,
+    residentSample: state.residentSample,
     pageErrors: errors.length,
     screenshot: path.relative(repo, shot),
   }, null, 2));
