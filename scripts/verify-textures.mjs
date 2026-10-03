@@ -24,7 +24,12 @@ import { chromium } from 'playwright';
 import { contentTypeFor, resolveStatic } from '../server/lib/staticFiles.mjs';
 
 const repo = path.resolve(import.meta.dirname, '..');
-const dist = path.join(repo, 'dist');
+// REEF_VERIFY_DIST points the gate at a snapshot of the build. A concurrent
+// `npm run build` empties dist/ and rewrites it, which fails the gate for a
+// reason that has nothing to do with the art it is checking.
+const dist = process.env.REEF_VERIFY_DIST
+  ? path.resolve(repo, process.env.REEF_VERIFY_DIST)
+  : path.join(repo, 'dist');
 const port = Number(process.env.REEF_VERIFY_PORT ?? 5241);
 const shot = process.env.REEF_VERIFY_SHOT
   ? path.resolve(repo, process.env.REEF_VERIFY_SHOT)
