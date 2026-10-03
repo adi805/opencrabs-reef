@@ -15,14 +15,14 @@
         <div class="title">OpenCrabs Reef</div>
         <div id="status" class="status" role="status">starting</div>
         <details id="connection-help" hidden>
-          <summary>Connect Hermes</summary>
+          <summary>Connect the live bridge</summary>
           <p id="connection-note"></p>
           <ol>
-            <li>Install and enable the Hermes Town plugin.</li>
-            <li>Run <code>hermes town start</code> on the Hermes host.</li>
-            <li>Start a new Hermes CLI session, or restart your gateway, then run a turn.</li>
+            <li>On the host that holds the OpenCrabs database, run <code>npm run reef:serve</code> (loopback only, port 4188).</li>
+            <li>Open this page with <code>?agents=live</code> to read the bridge.</li>
+            <li>Without a server, <code>npm run reef -- --db &lt;path&gt; --replay 300</code> prints the same events once.</li>
           </ol>
-          <p><code>hermes town status</code> checks local setup and delivery.</p>
+          <p>No plugin and no gateway are involved: the bridge reads the OpenCrabs database directly, read-only.</p>
           <p class="privacy-note">Only lifecycle metadata. No prompts, messages, or tool output. Keep live mode local.</p>
         </details>
       </div>

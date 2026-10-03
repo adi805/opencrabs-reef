@@ -4,13 +4,13 @@ export default defineConfig({
   server: {
     host: '127.0.0.1',
     proxy: {
-      '/api': { target: 'http://127.0.0.1:4187', changeOrigin: false },
+      '/api': { target: 'http://127.0.0.1:4188', changeOrigin: false },
     },
   },
   preview: {
     host: '127.0.0.1',
     proxy: {
-      '/api': { target: 'http://127.0.0.1:4187', changeOrigin: false },
+      '/api': { target: 'http://127.0.0.1:4188', changeOrigin: false },
     },
   },
   build: {
