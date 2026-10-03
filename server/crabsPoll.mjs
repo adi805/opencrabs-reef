@@ -8,7 +8,6 @@
 // The database is opened read-only and the guard is proven at startup, so
 // pointing this at the live `opencrabs.db` is safe by construction.
 
-import { randomUUID, createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 
 import {
@@ -29,6 +28,7 @@ import {
   eventIdFor,
   outcomeForStatus,
   roleForTool,
+  saltFor,
 } from './lib/crabsContract.mjs';
 
 function parseArgs(argv) {
@@ -41,15 +41,6 @@ function parseArgs(argv) {
     else args._.push(token);
   }
   return args;
-}
-
-/**
- * Stable across restarts, otherwise every server bounce renames every resident.
- * Override with --salt to rotate pseudonyms deliberately.
- */
-function saltFor(dbPath, explicit) {
-  if (explicit) return createHash('sha256').update(`salt:${explicit}`).digest('hex').slice(0, 16);
-  return createHash('sha256').update(`reef:${dbPath}`).digest('hex').slice(0, 16);
 }
 
 function buildSnapshot(db, cursor, horizon, salt, limit) {

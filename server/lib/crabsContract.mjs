@@ -31,6 +31,16 @@ export function eventIdFor(rowId, salt) {
   return `e${digest(`${salt}|e|${rowId}`).slice(0, 15)}`;
 }
 
+/**
+ * Pseudonym salt. Stable across restarts by default, derived from the database
+ * path, otherwise every server bounce renames every resident. Override to
+ * rotate pseudonyms deliberately.
+ */
+export function saltFor(dbPath, explicit) {
+  if (explicit) return digest(`salt:${explicit}`).slice(0, 16);
+  return digest(`reef:${dbPath}`).slice(0, 16);
+}
+
 function digest(value) {
   return createHash('sha256').update(value).digest('hex');
 }
