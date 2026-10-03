@@ -153,7 +153,11 @@ export function buildCountryside(local: TownMap): TownMap {
   for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
     if (inTownCore(x, y)) continue;
     const k = key(x, y);
-    if (water.has(k) && (road.has(k) || trail.has(k))) ground[y]![x] = T.bridge;
+    // Where a road or trail reaches the water it keeps going as a packed-sand
+    // causeway, never a plank span: nothing underwater has a bridge, and the
+    // timber footbridge over a channel was one of the last land tells in the
+    // frame. `T.path2` is walkable exactly as `T.bridge` was.
+    if (water.has(k) && (road.has(k) || trail.has(k))) ground[y]![x] = T.path2;
     else if (water.has(k)) ground[y]![x] = (x + y) % 3 ? T.water : T.water2;
     else if (road.has(k)) ground[y]![x] = (n++ % 7 === 3) ? T.path2 : T.path;
     else if (trail.has(k)) ground[y]![x] = (n++ % 2) ? T.trail : T.trail2;
