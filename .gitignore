@@ -8,8 +8,8 @@ test-results/
 .DS_Store
 __pycache__/
 
-# Keep final proof artifacts explicit. Ignore reproducible scratch QA evidence.
-artifacts/qa/
+# Reproducible scratch QA evidence, never source.
+artifacts/
 output/playwright/
 .playwright-cli/
 
@@ -17,8 +17,6 @@ output/playwright/
 # server writes while running. Never a credential — the bridge token lives in
 # the Hermes home, not here — but still machine-local state, not source.
 runtime/
-!integrations/hermes-town-plugin/runtime/
-!integrations/hermes-town-plugin/runtime/**
 
 # Editor and assistant launch configs are per-machine, not project source.
 .claude/
