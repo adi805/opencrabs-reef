@@ -57,7 +57,10 @@ const BASE: readonly (readonly [number, number, number])[] = [
   // edge this pass is trying to remove.
   [104, 136, 148], // algae margin along the water
   [52, 100, 92],   // kelp bed
-  [108, 126, 134], // coral rock
+  // Coral rock. At a cool slate it read as mortared masonry: the plateau face
+  // looked like a retaining wall with battlements. Coral rock is warm and
+  // uneven, so lift the red and let the grain carry the rest.
+  [128, 122, 126], // coral rock
   [160, 140, 156], // coral bloom over sand
   [150, 170, 182], // bleached maerl rubble
 ];
@@ -132,6 +135,18 @@ export function paintTerrain(map: TownMap): HTMLCanvasElement {
     }
   }
 
+  // Encrustation on the coral rock: heads that bulge past the terrace lip so
+  // the band stops reading as a straight crenellated wall.
+  for (let y = 1; y < h; y++) for (let x = 0; x < w; x++) {
+    if (mask[y * w + x] !== CORAL_ROCK) continue;
+    if (mask[(y - 1) * w + x] === CORAL_ROCK) continue; // only the top lip
+    if (r() > 0.22) continue;
+    const rad = 2 + Math.floor(r() * 4);
+    ctx.fillStyle = ['#c489a4', '#8fb2a6', '#dc9f74', '#b07a90'][Math.floor(r() * 4)]!;
+    ctx.beginPath(); ctx.ellipse(x, y, rad, rad * 0.75, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,240,220,.28)'; ctx.fillRect(x - 1, y - rad * 0.75, 2, 1);
+  }
+
   // Scatter pass: rubble, weed, anemones, kelp fronds, shell grit.
   for (let i = 0; i < w * h / 12; i++) {
     const x = Math.floor(r() * w), y = Math.floor(r() * h), k = mask[y * w + x];
@@ -159,8 +174,14 @@ export function paintTerrain(map: TownMap): HTMLCanvasElement {
       ctx.fillStyle = ['#e0846c', '#cfa0c0', '#f0c882', '#d4788c'][Math.floor(r() * 4)]!;
       ctx.fillRect(x, y, 2, 2);
       ctx.fillStyle = 'rgba(255,240,220,.6)'; ctx.fillRect(x, y, 1, 1);
-    } else if (k === CORAL_ROCK && r() < 0.25) {
-      ctx.fillStyle = r() < 0.5 ? '#9a9288' : '#6e6862'; ctx.fillRect(x, y, 2 + Math.floor(r() * 2), 1);
+    } else if (k === CORAL_ROCK && r() < 0.34) {
+      // Coral rock, not masonry. Grey speckle on a cool base is exactly what
+      // makes the plateau edge read as a stone retaining wall; a terrace step
+      // is fine underwater, a mortared wall is not. Encrust it with the same
+      // living coral and coralline algae the floor carries.
+      const c = r();
+      ctx.fillStyle = c < 0.3 ? '#c489a4' : c < 0.55 ? '#8fb2a6' : c < 0.78 ? '#7d9990' : '#dc9f74';
+      ctx.fillRect(x, y, 2 + Math.floor(r() * 2), 1);
     } else if (k === MAERL_BED && r() < 0.25) {
       ctx.fillStyle = '#efe6d0'; ctx.fillRect(x, y, 1, 1);
     }
