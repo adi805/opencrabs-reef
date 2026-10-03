@@ -1,0 +1,16 @@
+flowchart TD
+    A["Server start with database path"] --> B{"node:sqlite can open the file read-only?"}
+    B -->|No| C["Stay up, mark snapshot status degraded, keep listening on loopback"]
+    C --> D["Retry the open on the next poll tick"]
+    B -->|Yes| E["Poll tick: SELECT rows with id greater than the stored cursor"]
+    E --> F{"Query hit a lock or a mid-write page?"}
+    F -->|Yes| G["Log once, hold the cursor, deliver nothing for this tick"]
+    G --> H["Next tick re-reads from the same cursor, no duplicate events"]
+    F -->|No| I["Map tool name to building through the explicit mapping table"]
+    I --> J["Sanitize: keep only allow-listed fields, drop prompts, arguments and paths"]
+    J --> K["Append to the bounded in-memory event ring"]
+    K --> L["GET /api/snapshot and GET /api/events"]
+    L --> M["Browser scene renders residents and runners"]
+    M --> N{"Event stream dropped?"}
+    N -->|Yes| O["Client reconnects and refetches snapshot, then resumes by cursor"]
+    N -->|No| M
