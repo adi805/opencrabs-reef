@@ -55,7 +55,27 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': contentTypeFor(found.file), 'Cache-Control': 'no-store' });
   fs.createReadStream(found.file).pipe(res);
 });
-await new Promise((done) => server.listen(port, '127.0.0.1', done));
+// A busy port must not be able to kill the gate. A wrapper that SIGTERMs a run
+// leaves its server behind, and the next run then died at listen() with an
+// unhandled EADDRINUSE before it had loaded a single page: the log reads like a
+// gate failure when the code under test was never exercised. Bind the requested
+// port, fall back to an ephemeral one if it is taken, and always fetch the page
+// from the port actually bound.
+function listenOn(srv, preferred) {
+  const attempt = (p) => new Promise((resolve, reject) => {
+    const onError = (e) => { srv.off('listening', onListening); reject(e); };
+    const onListening = () => { srv.off('error', onError); resolve(srv.address().port); };
+    srv.once('error', onError);
+    srv.once('listening', onListening);
+    srv.listen(p, '127.0.0.1');
+  });
+  return attempt(preferred).catch((e) => {
+    if (e.code !== 'EADDRINUSE') throw e;
+    console.warn(`port ${preferred} is in use; falling back to an ephemeral port`);
+    return attempt(0);
+  });
+}
+const boundPort = await listenOn(server, port);
 
 const browser = await chromium.launch({ headless: true });
 let exitCode = 0;
@@ -64,7 +84,7 @@ try {
   const errors = [];
   page.on('pageerror', (e) => errors.push('PAGEERROR: ' + e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push('CONSOLE: ' + m.text()); });
-  await page.goto(`http://127.0.0.1:${port}/?agents=demo&hour=17`, { waitUntil: 'load' });
+  await page.goto(`http://127.0.0.1:${boundPort}/?agents=demo&hour=17`, { waitUntil: 'load' });
   await page.waitForFunction(
     () => window.__town?.game?.scene?.getScene('town')?.scene?.isActive(),
     null,
@@ -136,9 +156,11 @@ try {
   });
 
   const missing = REQUIRED_ART.filter((k) => !state.art.includes(k));
-  fs.mkdirSync(path.dirname(shot), { recursive: true });
-  await page.screenshot({ path: shot });
 
+  // Print the measured numbers before the capture: a slow or failed screenshot
+  // must not take the diagnostics down with it. This exact ordering cost a whole
+  // run - the shot timed out and the JSON that would have explained the frame
+  // was never written.
   console.log(JSON.stringify({
     artTextureCount: state.art.length,
     buildingTextures: state.lit,
@@ -152,6 +174,20 @@ try {
     screenshot: path.relative(repo, shot),
   }, null, 2));
   for (const e of errors.slice(0, 8)) console.error(e.slice(0, 300));
+
+  // Playwright's screenshot path waits on document.fonts.ready before it
+  // captures, and under SwiftShader on a contended box that wait is what blew
+  // the 30s budget. Capture through CDP instead - no font wait - with a budget
+  // this host can actually meet.
+  fs.mkdirSync(path.dirname(shot), { recursive: true });
+  const cdp = await page.context().newCDPSession(page);
+  const capture = await Promise.race([
+    cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false }),
+    new Promise((_resolve, reject) => setTimeout(
+      () => reject(new Error('screenshot budget of 120s exhausted')), 120000,
+    )),
+  ]);
+  fs.writeFileSync(shot, Buffer.from(capture.data, 'base64'));
 
   assert.deepEqual(missing, [], 'every required art frame must be baked');
   assert.ok(state.art.length >= 30, `expected the full prop/furniture/equipment set, got ${state.art.length}`);
