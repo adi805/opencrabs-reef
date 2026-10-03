@@ -7,9 +7,10 @@ against what data. Anything not measured is labelled as such.
 
 ## Method
 
-- **Host for the measurements below:** the 4 GB Ubuntu 24.04 box (joyboy). The
-  intended second host (tencent, 2 vCPU / 2 GB) was **unreachable at the time of
-  measurement**: see *Tencent* below.
+- **Host for the measurements below:** joyboy, the production box: 3 vCPU,
+  3,915 MB RAM, Ubuntu 24.04.4, Node v24.20.0. This is the **operator-designated
+  host** for the measurement: tencent, the 2 vCPU / 2 GB box the task originally
+  named, is unreachable and could not run the poller anyway (see *Tencent* below).
 - **Database:** a quiescent copy of the real session database,
   `opencrabs.db.bak-sessionpin-20261003T1247`: 554.6 MB on disk, **200,218**
   rows in `tool_executions`, `-wal` 0 B. The poller opens it read-only, and the
@@ -81,28 +82,59 @@ Wall-clock on the poller is not comparable between the two runs: this host was
 at load 15 from unrelated work, and the first (cold) run took 6.3 s against
 2.6 s warm.
 
-## Tencent: NOT measured, and why
+### Re-measured on joyboy, the operator-designated host
 
-The task called for running the measurement on tencent (2 vCPU / 2 GB) because
-that is the honest low-end target. It could not be reached:
+A third pass, run explicitly on joyboy as the designated low-end host, against
+the same 554.6 MB / 200,218-row copy. Host state during the run: load average
+16.2 from unrelated production work, 3 vCPU, 3,915 MB RAM, Node v24.20.0.
 
-- `ping` gets no reply (ICMP is filtered there, which is expected).
-- TCP to port 22 **connects**, so the host and sshd are up.
-- Every SSH attempt then fails at `Connection timed out during banner exchange`,
-  meaning sshd accepts the socket but never finishes the banner. Three attempts
-  were made (40 s and 70 s connect timeouts, `IPQoS=throughput`,
-  `ServerAliveInterval=15`), all identical.
+| Metric | Poller CLI | Live bridge |
+|---|---|---|
+| Peak / steady RSS | 56.2 MB, 56.6 MB | 62.6 MB boot, 68.4 MB after first snapshot, 68.5 MB steady |
+| Wall clock | 1.03 s, 0.52 s | n/a (long-running) |
+| CPU | 18 %, 24 % | 4.6 %, 3.0 % |
+| Response | 73,168 bytes JSON, `status: live` | `GET /api/reef/snapshot` HTTP 200, 0.106 s, 44,198 bytes; `/api/reef/health` 200 |
+| Loopback only | n/a | `ss -ltn`: 1 listener on `127.0.0.1:4199`, **0** on `0.0.0.0` |
 
-That signature is a wedged or heavily loaded sshd, not a network problem on this
-side, and it cannot be fixed without access to the host. **No tencent number is
-claimed here.** The figures above are from the 4 GB host and should be read as
-an upper bound for memory (RSS is dominated by the Node runtime, not the host)
-with the CPU figure still unverified on 2 vCPU.
+Privacy spot-check on that same snapshot: 7 residents, 400 events, and **zero**
+UUID-shaped strings and **no** `opencrabs.db` path anywhere in the serialized
+output.
+
+Poller peak RSS across all passes: 55.3, 56.2, 56.6, 64.4 MB. Plan against the
+highest: **~65 MB**.
+
+## Tencent: unreachable, so joyboy is the designated host
+
+The task named tencent (2 vCPU / 2 GB) as the honest low-end target. It cannot
+be used, for two independent reasons:
+
+1. **It is unreachable.** `ping` gets no reply (ICMP is filtered there, which is
+   expected), and TCP to port 22 **connects**, so host and sshd are up. But every
+   SSH attempt then fails at `Connection timed out during banner exchange`:
+   sshd accepts the socket and never finishes the banner. Four attempts across
+   25-70 s connect timeouts, with `IPQoS=throughput` and
+   `ServerAliveInterval=15`, all identical. That is a wedged or heavily loaded
+   sshd and needs a console reboot, which is not reachable from here.
+2. **It could not run the poller even when healthy.** tencent ships Node
+   v20.20.2, and `node:sqlite` (the poller's only dependency, and a built-in)
+   requires **>= 22.5**. Installing a newer runtime first would mean measuring
+   something other than the shipped artifact.
+
+The operator's instruction on 2026-10-03 was to take the measurement on joyboy
+instead, and that is what the third pass above does. **No tencent number is
+claimed here.** Read the figures with this split:
+
+- **RSS transfers.** Resident memory is dominated by the Node runtime (55-70 MB
+  for the poller and the bridge respectively), not by the host's core count.
+- **CPU does not transfer.** joyboy has 3 vCPU against tencent's 2, so the 3-5 %
+  bridge figure is a lower bound there, not a prediction.
 
 ## What this means for the low-VPS claim
 
 - The live bridge holds roughly **70 MB** resident and answers a snapshot in
-  under half a second. On a 2 GB VPS that is under 4 % of RAM.
+  well under half a second. On a 2 GB VPS that is under 4 % of RAM, and the
+  measurement host is the operator-designated joyboy, not the unreachable
+  tencent.
 - The public demo needs **no server process at all**: 2.5 MB of static files,
   365 KB of it over the wire gzipped.
 - The database is opened read-only, is never written, and is read through a
