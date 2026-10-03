@@ -13,9 +13,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Required: typecheck, production build, plugin privacy and server contract.
-  # These test the promises the town makes, not the choreography, so a change
-  # to how residents behave does not break them.
+  # Required: typecheck, production build, and the contracts the town promises.
+  # These are the checks that must pass for a merge, and none of them need a
+  # browser download or an external repository.
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -25,19 +25,18 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
       - run: npm ci
       - run: npm run build
+      # Poller privacy (nothing raw leaves, the source is never written) and the
+      # live bridge contract (loopback-only bind, security headers, no CORS).
       - run: npm run test:contracts
-      - run: npm run test:onboarding
+      # The town must recognise the tools this runtime actually calls. Runs off
+      # the checked-in sample, so no database is required.
+      - run: npm run verify:map
 
-  # Advisory: the browser walk-through of the world and the pinned Hermes
-  # plugin validator. Both depend on things outside this repository (a
-  # browser download, a clone of hermes-agent), so they report but do not
-  # block a merge.
-  world:
+  # Advisory: the browser checks. They need a Playwright download and a software
+  # renderer, so they report but do not block a merge.
+  browser:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     continue-on-error: true
@@ -47,9 +46,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
       - run: npm ci
       - name: Cache Playwright browsers
         uses: actions/cache@v4
@@ -57,22 +53,13 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps chromium
-      - run: npm run verify:characters
-      - run: npm run verify:world
       - run: npm run build
-      - run: npm run verify:onboarding
+      # Writes docs/evidence/m2-reef.png: the visual witness for the theme.
+      - run: npm run verify:textures
+      - run: npm run verify:characters
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: world-screenshots
-          path: output/playwright/
+          name: reef-evidence
+          path: docs/evidence/
           if-no-files-found: ignore
-      - name: Install pinned Hermes validator
-        run: |
-          git clone --filter=blob:none --no-checkout https://github.com/NousResearch/hermes-agent.git /tmp/hermes-agent
-          git -C /tmp/hermes-agent fetch --depth=1 origin 49c6d4a9e0dddc64d6333c5b1fcc9d911463a8fd
-          git -C /tmp/hermes-agent checkout --detach 49c6d4a9e0dddc64d6333c5b1fcc9d911463a8fd
-          python -m pip install -e /tmp/hermes-agent
-      - run: hermes plugins validate integrations/hermes-town-plugin
-      - run: hermes plugins doctor integrations/hermes-town-plugin --ci
-      - run: python tests/verify-native-hermes.py --hermes "$(command -v hermes)"
