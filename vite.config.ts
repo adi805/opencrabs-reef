@@ -15,6 +15,9 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
-    sourcemap: true,
+    // Source maps cost 10.5 MB per build and the deployed demo is read-only
+    // eye-candy; a stack trace from a minified town frame is not a debugging
+    // surface anyone is going to use on a 1 GB VPS.
+    sourcemap: false,
   },
 });
