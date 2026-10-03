@@ -93,3 +93,15 @@ harnesses against a copy of `~/.opencrabs/opencrabs.db`.
 - SSE held open `12.021s` against the live database, `463` `event: tick` frames and one `hello` frame, `108625` bytes, curl exit `0`.
 - Snapshot on that run: `status: live`, contract `crabs-town.snapshot.v1`, `452` events in the ring, `8` residents, cursor `205447`, poll interval `1000 ms`.
 - Diagram: `docs/diagrams/architecture.png` (750x2110, md5 `4dfe10d300e03a64031177a2ea403fb9`) rendered from `docs/diagrams/architecture.mmd`, inspected with the vision model: no clipped text, no overlapping boxes, arrows present.
+
+## Session plan task 3 — asset weight (2026-10-03)
+
+Repo-level task, not a milestone. Done.
+
+- `src/assets` 3952 KB → **1180 KB** (`du -sk src/assets`), budget 2048 KB.
+- Method: atlases resized to 50% with Lanczos, palette left at 256 colours. See D-014.
+- Palette-only reduction was measured and rejected: 64 colours is the ramp floor (2572 KB), and 32 colours turns equipment steel olive.
+- Verification that actually matters here is sprite-level, not atlas-level, because the pipeline ends in a hard alpha snap: a one-pixel silhouette shift destroys PSNR while looking identical. PSNR on atlas crops is reported and deliberately not used as the gate.
+- Sprite comparison through a port of the pipeline (upstream full-res atlas vs shipped half-res atlas, identical rects after `SHEET_SCALE`): silhouettes intact in all eight sampled frames; the only inspectable loss is the `props` statue face at close zoom.
+- `npm run build` exit 0. `dist` 12768 KB → 2472 KB after D-015.
+- Open, honest gap: the app's own `verify:world` could not run (Playwright wants chromium_headless_shell-1234, host has 1208). A headless Chrome screenshot of `?agents=demo` renders a **blank main canvas** in both the pre-change and post-change build — 0 differing pixels, identical md5 — so it is a harness limitation, not a regression, but it also means the shipped town has not yet been seen rendering in a real browser. That witness is owed before milestone 1 is called done.

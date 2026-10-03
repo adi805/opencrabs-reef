@@ -104,3 +104,18 @@ recorded here.
 3. Mark a decision `Accepted` only with explicit owner approval evidence.
 4. Mark an earlier decision `Superseded` instead of deleting it.
 5. Do not mix PRD Toolkit governance with this target project's decisions.
+
+## D-014 Atlas ships at half resolution, palette stays at 256 colours
+
+- Date: 2026-10-03 · Status: Accepted
+- Problem: the 2048 KB asset budget has to come from somewhere, and the two levers are colour count and pixel count.
+- Measured: cutting colours is the wrong lever. Through the real sprite pipeline (despill → trim → Lanczos downsample → hard alpha snap) 64 colours is the floor before shading ramps break; a critical look at `equipment` at 32 colours shows steel going olive, which is a colour failure, not a softness one. Sixty-four colours across the five sheets totals 2572 KB, which misses the budget anyway.
+- Chosen: halve the source resolution and leave the palette at 256 colours. Total 1180 KB. The pipeline downsamples every frame regardless, so the deleted pixels were payload and per-pixel despill work rather than visible detail.
+- Cost paid: one sprite, the statue face in `props`, loses eye pixels at close zoom. Silhouettes are unchanged everywhere because the alpha snap is geometry-driven, not palette-driven.
+- Consequence: rects in `reference.ts` are authored in original space and scaled by `SHEET_SCALE` on read. `cell()`-derived grids needed no change because they divide the measured image size.
+
+## D-015 Build source maps are off
+
+- Date: 2026-10-03 · Status: Accepted
+- Measured: `sourcemap: true` made `dist` 12768 KB, of which 10541 KB is one map file for a 1306 KB bundle. With maps off, `dist` is 2472 KB.
+- Reason: the demo is a read-only render; nobody is stepping through a minified Phaser frame on a low-RAM VPS, and the map is the payload that would have to be shipped or stripped anyway.
