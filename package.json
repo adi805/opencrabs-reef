@@ -23,6 +23,7 @@
     "test:onboarding": "npm run check:package && node tests/verify-onboarding-server.mjs && node tests/verify-package.mjs && python3 tests/verify-town-cli.py",
     "verify:onboarding": "node scripts/verify-onboarding.mjs",
     "verify:characters": "node scripts/verify-characters.mjs && node scripts/verify-motion.mjs",
+    "verify:textures": "node scripts/verify-textures.mjs",
     "verify:world": "node scripts/verify-world.mjs"
   },
   "dependencies": {
