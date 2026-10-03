@@ -14,7 +14,10 @@ import { Painter, mulberry } from './painter';
 import { submerge } from './reference';
 
 const KELP = { body: '#4e6a34', blade: '#6f9440', lit: '#93b455', dark: '#25331a' };
-const ROCK = { body: '#8a7a80', top: '#aa9ca2', dark: '#4a3f46', polyp: '#c98a96' };
+// Coral rock, not masonry. At a grey-mauve it rendered as a mortared wall with
+// flat-topped blocks, which is the single strongest land tell on the terrace
+// edge. Warm it, and grow polyps on it.
+const ROCK = { body: '#8f6f78', top: '#b5929a', dark: '#4a333c', polyp: '#e0a0ac', algae: '#7fa08c' };
 
 /** 9x32 world px: the vertical boundary, a kelp column instead of a rail. */
 export function paintKelpRailV(): HTMLCanvasElement {
@@ -69,21 +72,25 @@ export function paintCoralWallH(): HTMLCanvasElement {
   const W = 96, H = 40;
   const p = new Painter(W, H);
   const r = mulberry(6131);
-  p.rect(0, H - 5, W, 5, ROCK.dark);
-  let x = -4;
-  while (x < W) {
-    const w = 14 + Math.round(r() * 14);
-    const hh = 14 + Math.round(r() * 15);
-    const y = H - 4 - hh;
-    p.rect(x, y, w, hh, ROCK.body);
-    p.rect(x, y, w, 2, ROCK.top);
-    p.rect(x + w - 2, y, 2, hh, ROCK.dark);
-    for (let k = 0; k < 3; k++) {
-      const cx = x + 3 + Math.round(r() * Math.max(1, w - 6));
-      const cy = y + 5 + Math.round(r() * Math.max(1, hh - 9));
-      p.disc(cx, cy, 1, ROCK.polyp);
+  // A rubble apron, then an irregular ridge of overlapping coral heads. The
+  // heads are discs, never rectangles: a flat-topped block reads as a dressed
+  // stone course, which is exactly the battlement this replaces.
+  p.rect(0, H - 4, W, 4, ROCK.dark);
+  let x = -6;
+  while (x < W + 4) {
+    const rad = 6 + Math.round(r() * 7);
+    const cy = H - 3 - Math.round(rad * (0.35 + r() * 0.5));
+    p.disc(x, cy, rad, ROCK.body);
+    p.disc(x - Math.round(rad * 0.25), cy - Math.round(rad * 0.3), Math.round(rad * 0.45), ROCK.top);
+    // Encrustation: polyps and coralline algae on the sunward face.
+    const n = 1 + Math.floor(r() * 3);
+    for (let k = 0; k < n; k++) {
+      const a = r() * Math.PI;
+      const px = x + Math.round(Math.cos(a) * rad * 0.6);
+      const py = cy - Math.round(Math.sin(a) * rad * 0.5);
+      p.disc(px, py, 1 + (r() < 0.35 ? 1 : 0), r() < 0.7 ? ROCK.polyp : ROCK.algae);
     }
-    x += w - 4;
+    x += rad + 2 + Math.round(r() * 4);
   }
   return submerge(p.canvas);
 }

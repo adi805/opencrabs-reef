@@ -152,20 +152,28 @@ function coralHead(p: Painter, W: number, H: number, r: Rng): void {
 /** A bioluminescent coral stalk: the street lamp, grown rather than built. */
 function lamp(p: Painter, W: number, H: number): void {
   const cx = Math.round(W / 2);
-  const yBot = H - 1, yTop = Math.max(3, Math.round(H * 0.24));
+  // A glowing anemone polyp, not a lamp post. The previous version was a
+  // slender sinuous pole with a globe on top, and every vision pass on the
+  // frame called it a street lamp lining the paths. Squat, thick and bulbous
+  // instead: the silhouette has to stop reading as a post.
+  const yBot = H - 1, yTop = Math.max(3, Math.round(H * 0.46));
   for (let y = yBot; y >= yTop; y--) {
     const t = (yBot - y) / Math.max(1, yBot - yTop);
-    const dx = Math.round(Math.sin(t * 2.4) * Math.max(1, W * 0.14));
-    const hw = Math.max(1, Math.round(1.4 + t * 0.9));
-    p.rect(cx + dx - hw, y, hw * 2, 1, t > 0.5 ? CORAL.body : shade(CORAL.body, 0.85));
-    p.px(cx + dx - hw, y, CORAL.dark);
-    p.px(cx + dx + hw - 1, y, CORAL.lit);
+    const hw = Math.max(2, Math.round(W * (0.30 + t * 0.16)));
+    p.rect(cx - hw, y, hw * 2, 1, t > 0.5 ? CORAL.body : shade(CORAL.body, 0.85));
+    p.px(cx - hw, y, CORAL.dark);
+    p.px(cx + hw - 1, y, CORAL.lit);
   }
-  const span = Math.max(2, Math.round(W * 0.32));
-  p.disc(cx - span, Math.round(yBot - (yBot - yTop) * 0.46), 1, GLOW);
-  p.disc(cx + span, Math.round(yBot - (yBot - yTop) * 0.66), 1, GLOW);
-  p.disc(cx, yTop, Math.max(2, Math.round(W * 0.36)), shade(GLOW, 0.72));
-  p.disc(cx, yTop, Math.max(1, Math.round(W * 0.2)), CORE);
+  const headR = Math.max(3, Math.round(W * 0.46));
+  p.disc(cx, yTop, headR, shade(GLOW, 0.68));
+  p.disc(cx, yTop, Math.max(2, Math.round(headR * 0.6)), GLOW);
+  p.disc(cx, yTop, Math.max(1, Math.round(headR * 0.28)), CORE);
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    p.px(cx + Math.round(Math.cos(a) * headR), yTop + Math.round(Math.sin(a) * headR * 0.7), GLOW);
+  }
+  p.disc(cx - headR, yBot - 1, 1, GLOW);
+  p.disc(cx + headR, yBot - 1, 1, GLOW);
 }
 
 /** Shell sled: the hand cart, with a shell hull and a kelp load. */

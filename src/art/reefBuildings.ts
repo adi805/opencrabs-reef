@@ -63,7 +63,7 @@ function paintRoof(p: Painter, r: () => number, w: number, roofTop: number, roof
   // A dome is wider than it is tall. Matching the mound height to the wall
   // height made a tall, steep cap whose sides read as straight roof slopes at
   // sprite scale; a coral head is a low, broad bulge.
-  const peak = Math.max(4, Math.round(rad * (style === 'wide' ? 0.42 : 0.62)));
+  const peak = Math.max(3, Math.round(rad * (style === 'wide' ? 0.30 : 0.44)));
   for (let y = roofBase - peak; y <= roofBase; y++) {
     const t = (roofBase - y) / Math.max(1, peak);
     // The 2.4 exponent keeps the crown broad and rounded instead of tapering to
