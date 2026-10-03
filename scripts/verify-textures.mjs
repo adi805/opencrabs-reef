@@ -101,11 +101,24 @@ try {
   // then shows empty streets and the run reads like a placement bug. Advancing
   // the sim clock directly makes the frame deterministic and frame-rate
   // independent, so the witness shows the town as it actually runs.
-  await page.evaluate(() => {
-    const sim = window.__town.sim;
-    for (let i = 0; i < 60 * 15; i++) sim.update(1 / 60);
-  });
-  // Let the scene re-sync its sprites to the advanced state, then shoot.
+  // The demo source drives its events from real timers (setTimeout per turn,
+  // setInterval for spawns). A single synchronous pre-roll advances the sim while
+  // the event source stands still: residents spawn at the gate and never get a
+  // turn assigned, so the frame reads as a placement bug that is not there.
+  // Advance the sim in chunks and yield between them so those timers can fire.
+  for (let chunk = 0; chunk < 30; chunk++) {
+    await page.evaluate(() => {
+      const sim = window.__town.sim;
+      for (let i = 0; i < 60; i++) sim.update(1 / 60);
+    });
+    await page.waitForTimeout(200);
+  }
+  // The evaluate above blocks the game loop, so the scene has not seen the
+  // advanced sim yet, and the scene's update() is what creates and positions
+  // resident views. Drive one zero-delta frame by hand before shooting.
+  await page.evaluate(() => window.__town.game.scene.getScene('town').update(0, 0));
+  // Belt and braces: if nothing is visible yet, give the real loop a bounded
+  // chance to catch up before shooting.
   await page.waitForFunction(() => {
     const scene = window.__town.game.scene.getScene('town');
     return [...scene.views.values()].some((v) => v.sprite.visible);
