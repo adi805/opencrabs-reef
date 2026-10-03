@@ -1,5 +1,5 @@
 {
-  "name": "hermes-town",
+  "name": "opencrabs-reef",
   "private": true,
   "version": "0.3.0",
   "license": "MIT",
@@ -12,6 +12,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "serve:live": "node server/serve-live.mjs",
+    "reef": "node server/crabsPoll.mjs",
     "install:plugin": "node scripts/install-hermes-town-plugin.mjs",
     "typecheck": "tsc -b",
     "test:contracts": "python3 tests/verify-plugin-privacy.py && node tests/verify-server-contract.mjs && node tests/verify-cron-seed.mjs",
