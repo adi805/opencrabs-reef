@@ -16,6 +16,20 @@ const BUILDINGS: Partial<Record<BuildingKind, Rect>> = {
   forge: [887, 548, 444, 339], house: [1331, 481, 443, 406],
 };
 
+/**
+ * Sheets ship at half the authored resolution. Every frame is downsampled by
+ * this pipeline regardless, so the discarded source pixels are pure payload and
+ * pure per-pixel despill work; the palette stays intact at 256 colours, which
+ * is what actually protects the shading ramps. The rects below remain in
+ * authored space and are scaled when read, so they stay comparable against the
+ * original art and against upstream.
+ */
+const SHEET_SCALE = 0.5;
+const authored = (r: Rect): Rect => [
+  Math.round(r[0] * SHEET_SCALE), Math.round(r[1] * SHEET_SCALE),
+  Math.round(r[2] * SHEET_SCALE), Math.round(r[3] * SHEET_SCALE),
+];
+
 /** Import the authored chroma-key sheets once; render at two texels per world pixel. */
 export class ReferenceArt {
   private sheets = new Map<string, HTMLCanvasElement>();
@@ -99,7 +113,7 @@ export class ReferenceArt {
   }
 
   building(kind: BuildingKind, width: number, lit: boolean): HTMLCanvasElement {
-    const canvas = this.frame('buildings', BUILDINGS[kind] ?? BUILDINGS.house!, width);
+    const canvas = this.frame('buildings', authored(BUILDINGS[kind] ?? BUILDINGS.house!), width);
     if (!lit) {
       // Window occupancy remains meaningful: unoccupied windows lose their
       // bright yellow cores, while masonry and roof colours remain unchanged.
@@ -123,10 +137,10 @@ export class ReferenceArt {
       [[0, 530, 490, 494], 30, 37], [[490, 530, 555, 494], 61, 62],
     ];
     const [rect, w, h] = frames[variant % frames.length]!;
-    return this.frame('vegetation', rect, w, h);
+    return this.frame('vegetation', authored(rect), w, h);
   }
 
-  bush(): HTMLCanvasElement { return this.frame('vegetation', [1050, 600, 486, 424], 24, 16); }
+  bush(): HTMLCanvasElement { return this.frame('vegetation', authored([1050, 600, 486, 424]), 24, 16); }
 
   furniture(index: number, width: number, height?: number): HTMLCanvasElement {
     return this.cell('furniture', index, 4, 4, width, height);
@@ -145,6 +159,6 @@ export class ReferenceArt {
 
   prop(index: number, width: number, height?: number): HTMLCanvasElement {
     const col = index % 4, row = Math.floor(index / 4);
-    return this.frame('props', [Math.round(col * 443.5), row * 444, col % 2 ? 443 : 444, row ? 443 : 444], width, height);
+    return this.frame('props', authored([Math.round(col * 443.5), row * 444, col % 2 ? 443 : 444, row ? 443 : 444]), width, height);
   }
 }
