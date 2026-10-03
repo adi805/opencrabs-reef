@@ -54,6 +54,33 @@ once; every poll after that is sub-second.
 | JS bundle, gzip | 373,392 bytes (365 KB) |
 | Server processes | none: GitHub Pages serves static files |
 
+## Reproduced independently
+
+The figures above were re-measured from scratch on the same host, to check the
+document rather than trust it. Same database copy, same flags.
+
+| Metric | Documented | Reproduced |
+|---|---|---|
+| `tool_executions` rows | 200,218 | 200,218 |
+| Bridge RSS after boot | 62.1 MB | 61.2 MB |
+| Bridge RSS after first snapshot | 67.8 MB | 67.1 MB |
+| Bridge RSS steady | 69.6 MB | 69.0 MB |
+| Bridge CPU while serving | 5.4 % | 4.8 % |
+| `GET /api/reef/snapshot` | 200, 0.405 s | 200, 0.364 s |
+| Poller peak RSS | 55.3 MB | 64.4 MB |
+| Poller CPU | 9 % | 14 % |
+
+The bridge reproduces within a megabyte and a tenth of a second. The one
+disagreement is the poller's peak RSS: 64.4 MB here against 55.3 MB documented,
+and it was stable across three runs (64.1, 64.4, 64.4). The higher figure is the
+one to plan against. Both are dominated by the Node runtime, not by the
+database, so the conclusion does not change: the server is a ~70 MB process,
+which is under 4 % of a 2 GB VPS.
+
+Wall-clock on the poller is not comparable between the two runs: this host was
+at load 15 from unrelated work, and the first (cold) run took 6.3 s against
+2.6 s warm.
+
 ## Tencent: NOT measured, and why
 
 The task called for running the measurement on tencent (2 vCPU / 2 GB) because
