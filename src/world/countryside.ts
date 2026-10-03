@@ -220,22 +220,20 @@ export function buildCountryside(local: TownMap): TownMap {
   const at = (x: number, y: number, kind: PropKind, dx = 0, dy = 0, blocks = true): void => {
     extra.push({ kind, x: x * TILE + dx, y: y * TILE + dy, blocks: blocks ? [{ x, y }] : [] });
   };
-  // Cemetery: iron enclosure, chapel and grave markers beside a clear approach.
-  for (let x = cemetery.x; x < cemetery.x + cemetery.w; x++) { ground[cemetery.y]![x] = T.fence; ground[cemetery.y + cemetery.h - 1]![x] = x === cemetery.x + 5 ? T.trail : T.fence; }
-  for (let y = cemetery.y + 1; y < cemetery.y + cemetery.h - 1; y++) { ground[y]![cemetery.x] = T.fenceV; ground[y]![cemetery.x + cemetery.w - 1] = T.fenceV; }
-  for (let y = cemetery.y + 1; y < cemetery.y + cemetery.h - 1; y++) for (let x = cemetery.x + 1; x < cemetery.x + cemetery.w - 1; x++) ground[y]![x] = r() < 0.2 ? T.weeds : r() < 0.5 ? T.grassWet : T.grass2;
-  const graves: [number, number, number][] = [[1, 4, 0], [8, 4, 2], [2, 6, 1], [4, 7, 0], [7, 7, 1], [9, 7, 0]];
-  for (const [gx, gy, v] of graves) at(cemetery.x + gx, cemetery.y + gy, `grave${v}` as PropKind, 2, 1);
-  // Chapel at the top of the plot and a lamp beside the open gate.
-  extra.push({ kind: 'chapel', x: (cemetery.x + 4) * TILE - 4, y: (cemetery.y + 5) * TILE - 46, blocks: [0, 1, 2].flatMap((dx) => [{ x: cemetery.x + 4 + dx, y: cemetery.y + 3 }, { x: cemetery.x + 4 + dx, y: cemetery.y + 4 }]) });
-  extra.push({ kind: 'lamp', x: (cemetery.x + 4) * TILE + 3, y: (cemetery.y + cemetery.h) * TILE - 14, blocks: [{ x: cemetery.x + 4, y: cemetery.y + cemetery.h }] });
-  ground[cemetery.y + 6]![cemetery.x + 6] = T.flwWhite0; ground[cemetery.y + 3]![cemetery.x + 8] = T.flwWhite0; ground[cemetery.y + 5]![cemetery.x + 1] = T.flwBlue0;
-  for (let y = cemetery.y + 5; y < cemetery.y + cemetery.h; y++) ground[y]![cemetery.x + 5] = T.trail;
-  for (const [dx, dy] of [[2, 2], [8, 2], [2, 8], [7, 9]]) {
+  // Coral grove. The plot used to be an iron-fenced cemetery with rows of
+  // headstones and a chapel: the densest land tell left in the frame, and a
+  // reef does not bury its dead in ordered rows. No enclosure, no rows, no
+  // chapel: a kelp bed with coral heads scattered through it instead.
+  for (let y = cemetery.y + 1; y < cemetery.y + cemetery.h - 1; y++) for (let x = cemetery.x + 1; x < cemetery.x + cemetery.w - 1; x++) {
+    const v = r();
+    ground[y]![x] = v < 0.28 ? T.tall0 : v < 0.5 ? T.tall1 : v < 0.78 ? T.grassWet : T.grass2;
+  }
+  const grove: [number, number, number][] = [[2, 3, 0], [7, 2, 2], [3, 6, 1], [6, 8, 0], [9, 5, 1], [1, 8, 2], [8, 8, 0]];
+  for (const [gx, gy, v] of grove) at(cemetery.x + gx, cemetery.y + gy, `grave${v}` as PropKind, 2, 1, false);
+  for (const [dx, dy] of [[2, 2], [8, 2], [2, 8], [7, 9], [5, 4]]) {
     extra.push({ kind: 'bush', x: (cemetery.x + dx!) * TILE, y: (cemetery.y + dy!) * TILE, blocks: [] });
   }
-  // Rails and end posts are part of each complete bridge sprite.
-  ground[cemetery.y + 3]![cemetery.x + 4] = T.mossStone;
+  for (let y = cemetery.y + 4; y < cemetery.y + cemetery.h; y++) ground[y]![cemetery.x + 5] = T.trail;
   // A handcart at the end of the west trail.
   at(cartSpot.x, cartSpot.y, 'cart', -6, -4);
   // a run of dry-stone wall beside the east road

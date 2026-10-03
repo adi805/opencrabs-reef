@@ -1,10 +1,11 @@
 import Phaser from 'phaser';
-import { ReferenceArt, REFERENCE_ATLASES } from '../art/reference';
+import { REFERENCE_ATLASES } from '../art/reference';
 import { paintReefFlora, paintReefNub, reefFloraSway } from '../art/reef';
 import { paintTerrain } from '../art/terrain';
 import { paintStructures } from '../art/structures';
 import { paintReefBuilding } from '../art/reefBuildings';
 import { paintReefProp } from '../art/reefProps';
+import { paintReefEquipment, paintReefFurniture } from '../art/reefFurniture';
 import { PROP_ANCHORS, TREE_ANCHORS } from '../world/dressing';
 import {
   CHARACTER_BASELINE, CHARACTER_SCALE, FRAME_COUNT, FRAME_H, FRAME_W, idleFrame, lookFor, paintCharacterSheet, paintEmote,
@@ -90,7 +91,6 @@ export class TownScene extends Phaser.Scene {
     const { map } = this.opts;
     const tex = this.textures;
     const add = (key: string, c: HTMLCanvasElement) => tex.addCanvas(key, c);
-    const art = new ReferenceArt(Object.fromEntries(Object.keys(REFERENCE_ATLASES).map(key => [key, tex.get(`reference-${key}`).getSourceImage()])) as Record<keyof typeof REFERENCE_ATLASES, HTMLImageElement>);
     add('terrain', paintTerrain(map));
     add('glow', paintGlow()); add('spark', paintSpark());
     add('shadow-tree', paintShadow(26, 10)); add('shadow-char', paintShadow(12, 5));
@@ -109,12 +109,12 @@ export class TownScene extends Phaser.Scene {
       ['barrel', 2, 16, 15], ['crate', 3, 18, 17], ['noticeBoard', 4, 26, 30], ['signpost', 5, 19, 27],
       ['grave0', 6, 17, 22], ['grave1', 7, 15, 23], ['grave2', 6, 14, 19], ['banner', 15, 17, 35],
     ];
-    for (const [key, index, w, h] of furniture) add(`art-${key}`, art.furniture(index, w, h));
+    for (const [key, index, w, h] of furniture) add(`art-${key}`, paintReefFurniture(index, w, h ?? w));
     const equipment: [string, number, number, number][] = [
       ['anvil', 0, 19, 17], ['workbench', 1, 25, 18], ['lectern', 2, 17, 21],
       ['telescope', 3, 23, 27], ['postbox', 4, 13, 21], ['desk', 5, 24, 18], ['stall', 6, 24, 17],
     ];
-    for (const [key, index, w, h] of equipment) add(`art-${key}`, art.equipment(index, w, h));
+    for (const [key, index, w, h] of equipment) add(`art-${key}`, paintReefEquipment(index, w, h));
     add('art-hedge', paintReefNub(1));
     add('art-dock', paintReefProp(4, 30, 18));
 

@@ -44,15 +44,15 @@ function familyOf(tile: number): number {
 // what the grade did on top, because an overlay can tint a warm base but cannot
 // cool it. These values are the floor seen through water, not sand on a beach.
 const BASE: readonly (readonly [number, number, number])[] = [
-  [138, 162, 168], // oolite seabed
-  [20, 64, 92],    // lagoon water
-  [118, 142, 148], // wet packed sand
-  [118, 138, 150], // coral-rock paving
+  [112, 144, 156], // oolite seabed
+  [52, 96, 122],   // lagoon water
+  [116, 142, 152], // wet packed sand
+  [116, 138, 152], // coral-rock paving
   [84, 120, 110],  // algae margin along the water
-  [44, 96, 86],    // kelp bed
+  [52, 100, 92],   // kelp bed
   [108, 126, 134], // coral rock
   [160, 140, 156], // coral bloom over sand
-  [162, 176, 184], // bleached maerl rubble
+  [150, 170, 182], // bleached maerl rubble
 ];
 
 export function paintTerrain(map: TownMap): HTMLCanvasElement {

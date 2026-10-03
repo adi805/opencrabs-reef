@@ -114,27 +114,43 @@ export function buildTownLocal(): TownMap {
   stroke([{ x: 42, y: 24 }, { x: 43, y: 31 }], 2, putRoad);                                              // tavern lane
   stroke([{ x: 50, y: 24 }, { x: 50, y: 31 }], 2, putRoad);                                              // forge lane
 
-  // ---- stream and pond
+  // ---- lagoon channel and tide pool
+  // The town sits on a reef flat, so water is not a river to be crossed: it is
+  // the medium the lanes run through. The channel meanders and swells into
+  // basins instead of running straight, and the lanes that reach it continue as
+  // packed-sand causeways. A straight channel with plank spans was the single
+  // strongest land tell left in the frame: nothing underwater has bridges.
   const putWater = (x: number, y: number) => water.add(key(x, y));
-  stroke([{ x: 60, y: 0 }, { x: 60, y: 8 }, { x: 58, y: 15 }, { x: 60, y: 22 }, { x: 59, y: 30 }, { x: 61, y: 41 }], 4, putWater);
-  // Two crossings: the east street and the home street, each one flat span.
+  stroke([{ x: 60, y: 0 }, { x: 59, y: 6 }, { x: 61, y: 12 }, { x: 58, y: 18 }, { x: 60, y: 24 }, { x: 58, y: 30 }, { x: 61, y: 36 }, { x: 59, y: 41 }], 5, putWater);
+  // Basins where the channel widens, plus the old pond folded into one of them.
+  for (const [cx, cy, rr] of [[60, 5, 5], [59, 20, 5.5], [60, 34, 5]] as const) {
+    for (let y = Math.max(0, cy - 7); y <= Math.min(LOCAL_H - 1, cy + 7); y++) {
+      for (let x = Math.max(0, cx - 7); x <= Math.min(LOCAL_W - 1, cx + 7); x++) {
+        if (Math.hypot(x - cx, (y - cy) * 1.15) < rr) putWater(x, y);
+      }
+    }
+  }
+  // Causeways: the east street and the home street keep their packed-sand
+  // surface across the water, so pathing still reaches the east bank.
   for (const y of [22, 40]) stroke([{ x: 55, y }, { x: 63, y }], 2, putRoad);
-  for (let y = 3; y <= 7; y++) for (let x = 54; x <= 61; x++) if (Math.hypot(x - 57.5, (y - 5) * 1.6) < 4) putWater(x, y);
-  // Crossings are three separate, horizontal spans. Keep the old east street
-  // from merging into the middle bridge as a six-tile-long plank patch.
-  const bridgeRows = new Set([21, 22, 39, 40]);
-  for (const k of water) if (!bridgeRows.has(Math.floor(k / LOCAL_W))) road.delete(k);
 
   // ---- write ground
+  // The square is a lagoon, not a cobbled plaza. A grey cobblestone centre was
+  // the frame's most repeated land tell, and no palette key makes paving read
+  // as sea floor. Keep a sand rim, and the streets that cross it, as walkable
+  // causeways so resident pathing still reaches every station, and flood the
+  // middle into a shallow lagoon.
   const square = { x: 22, y: 16, w: 19, h: 12 };
+  const RIM = 2;
   let n = 0;
   for (let y = 0; y < LOCAL_H; y++) for (let x = 0; x < LOCAL_W; x++) {
     const k = key(x, y);
     const inSquare = x >= square.x && x < square.x + square.w && y >= square.y && y < square.y + square.h;
-    if (water.has(k) && road.has(k)) ground[y]![x] = T.bridge;
+    const onRim = inSquare && (x < square.x + RIM || x >= square.x + square.w - RIM || y < square.y + RIM || y >= square.y + square.h - RIM);
+    if (water.has(k) && road.has(k)) ground[y]![x] = (n++ % 9 === 4) ? T.path2 : T.path; // sand causeway, not a bridge
     else if (water.has(k)) ground[y]![x] = (x + y) % 3 ? T.water : T.water2;
-    else if (inSquare) ground[y]![x] = (n++ % 5 === 2) ? T.cobble2 : T.cobble;
-    else if (road.has(k)) ground[y]![x] = (n++ % 7 === 3) ? T.path2 : T.path;
+    else if (inSquare && !onRim && !road.has(k)) ground[y]![x] = (x + y) % 3 ? T.water : T.water2;
+    else if (inSquare || road.has(k)) ground[y]![x] = (n++ % 7 === 3) ? T.path2 : T.path;
   }
   // shore around water
   for (let y = 0; y < LOCAL_H; y++) for (let x = 0; x < LOCAL_W; x++) {

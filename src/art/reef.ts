@@ -204,17 +204,33 @@ export function paintAnemone(variant: number): HTMLCanvasElement {
 /** The bush and hedge slot: a low cluster of coral nubs and anemone heads. */
 export function paintReefNub(variant: number): HTMLCanvasElement {
   const heads = ['#c9747f', '#8a6aa8', '#5f8a5a', '#d9a04a'];
+  // Clusters of uniform circles read as round deciduous bushes, which is why
+  // this slot kept the strongest land silhouette of any prop. Grow branchlets
+  // instead: stalks of different heights, each with a knob, over a low
+  // holdfast. Irregular height is what separates coral from shrubbery.
   return bake(18, 12, (p, w, h) => {
     const r = mulberry(2400 + variant);
-    p.rect(1, h - 3, w - 2, 3, '#33402c');
-    for (let i = 0; i < 7; i++) {
-      const cx = 3 + Math.round(r() * (w - 6));
-      const cy = h - 4 - Math.round(r() * 5);
-      const rad = 2 + Math.round(r() * 2);
+    const base = h - 1;
+    // Holdfast: an uneven encrusted mound, not a flat strip.
+    for (let x = 0; x < w; x++) {
+      const bump = Math.round(r() * 2);
+      p.vline(x, base - 2 - bump, 3 + bump, x % 3 === 0 ? '#3c4a34' : '#33402c');
+    }
+    const stalks = 5 + Math.round(r() * 2);
+    for (let i = 0; i < stalks; i++) {
+      const cx = 2 + Math.round(((i + 0.5) / stalks) * (w - 5)) + Math.round(r() * 2 - 1);
+      const tall = 3 + Math.round(r() * 6);
+      const lean = r() < 0.5 ? -1 : 1;
       const col = heads[(variant + i) % heads.length]!;
-      p.disc(cx, cy, rad, '#1f2a24');
-      p.disc(cx, cy - 1, Math.max(1, rad - 1), col);
-      p.px(cx, cy - rad, '#e8c8b0');
+      let x = cx;
+      for (let s = 0; s < tall; s++) {
+        if (s > 1) x += lean * (r() < 0.4 ? 1 : 0);
+        p.rect(Math.max(1, Math.min(w - 3, x)), base - 3 - s, 2, 1, s === 0 ? '#2b3a26' : col);
+      }
+      // Knob on the tip, plus a paler polyp mouth on the taller ones.
+      const tipY = Math.max(1, base - 3 - tall);
+      p.rect(Math.max(1, Math.min(w - 4, x - 1)), tipY, 4, 2, col);
+      if (tall > 5) p.px(Math.max(1, Math.min(w - 3, x)), tipY - 1, '#e8c8b0');
     }
   });
 }

@@ -149,12 +149,23 @@ function coralHead(p: Painter, W: number, H: number, r: Rng): void {
 }
 
 /** Bioluminescent lamp: the same silhouette, the light is alive now. */
+/** A bioluminescent coral stalk: the street lamp, grown rather than built. */
 function lamp(p: Painter, W: number, H: number): void {
-  const cx = Math.round(W / 2), head = Math.round(H * 0.16);
-  column(p, cx, head, H - 2, 2, 3, ROCK.body, ROCK.dark);
-  p.rect(cx - 4, H - 4, 8, 3, ROCK.dark);
-  p.disc(cx, head, Math.max(3, Math.round(W * 0.24)), GLOW);
-  p.disc(cx, head, Math.max(2, Math.round(W * 0.13)), CORE);
+  const cx = Math.round(W / 2);
+  const yBot = H - 1, yTop = Math.max(3, Math.round(H * 0.24));
+  for (let y = yBot; y >= yTop; y--) {
+    const t = (yBot - y) / Math.max(1, yBot - yTop);
+    const dx = Math.round(Math.sin(t * 2.4) * Math.max(1, W * 0.14));
+    const hw = Math.max(1, Math.round(1.4 + t * 0.9));
+    p.rect(cx + dx - hw, y, hw * 2, 1, t > 0.5 ? CORAL.body : shade(CORAL.body, 0.85));
+    p.px(cx + dx - hw, y, CORAL.dark);
+    p.px(cx + dx + hw - 1, y, CORAL.lit);
+  }
+  const span = Math.max(2, Math.round(W * 0.32));
+  p.disc(cx - span, Math.round(yBot - (yBot - yTop) * 0.46), 1, GLOW);
+  p.disc(cx + span, Math.round(yBot - (yBot - yTop) * 0.66), 1, GLOW);
+  p.disc(cx, yTop, Math.max(2, Math.round(W * 0.36)), shade(GLOW, 0.72));
+  p.disc(cx, yTop, Math.max(1, Math.round(W * 0.2)), CORE);
 }
 
 /** Shell sled: the hand cart, with a shell hull and a kelp load. */
