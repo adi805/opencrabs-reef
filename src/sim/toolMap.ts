@@ -50,6 +50,21 @@ const EXACT: Record<string, ToolTarget> = Object.fromEntries<ToolTarget>([
     'gui_tour', 'show_tip', 'focus_pane', 'desktop_project'].map((t): [string, ToolTarget] => [t, OBSERVATORY]),
   // planning, delegating, asking: the hall
   ...['delegate_task', 'todo_list', 'clarify'].map((t): [string, ToolTarget] => [t, HALL]),
+  // OpenCrabs' own registry. These names are read out of `tool_executions` rather
+  // than guessed, and the generic rules below would have parked most of them in
+  // the market: `load_brain_file`, `config_manager`, `cron_manage` and friends
+  // match none of the read/write/send verbs the fallbacks test for.
+  ...['read_file', 'grep', 'glob', 'ls', 'memory_search', 'session_search', 'channel_search',
+    'load_brain_file', 'tasks_list', 'parse_document', 'pdf_to_images', 'context7_docs', 'context7_search',
+    'cloudflare_docs', 'cloudflare_api_search', 'feedback_analyze', 'profile_list', 'whatsapp_history'].map((t): [string, ToolTarget] => [t, LIBRARY]),
+  ...['write_file', 'edit_file', 'hashline_edit', 'write_opencrabs_file', 'write_opcrabs_file',
+    'generate_document', 'generate_image', 'stitch_list_projects', 'config_manager', 'tool_manage',
+    'self_improve', 'rsi_propose', 'feedback_record', 'rename_session'].map((t): [string, ToolTarget] => [t, WORKSHOP]),
+  ...['bash', 'execute_code', 'slash_command', 'cloudflare_api_execute', 'command_code', 'evolve', 'rebuild'].map((t): [string, ToolTarget] => [t, FORGE]),
+  ...['telegram_send', 'whatsapp_send', 'slack_send', 'trello_send', 'a2a_send', 'session_notify'].map((t): [string, ToolTarget] => [t, POST]),
+  ...['web_search', 'exa_search', 'brave_search', 'analyze_image', 'analyze_video', 'vision_read',
+    'browser_navigate', 'browser_find', 'camofox_navigate', 'camofox_health', 'mission_control_report'].map((t): [string, ToolTarget] => [t, OBSERVATORY]),
+  ...['plan', 'cron_manage', 'goal_manage', 'suggest_options', 'suggest_followups', 'session_context', 'decide_cached'].map((t): [string, ToolTarget] => [t, HALL]),
 ]);
 
 /** Prefix and pattern rules, for tool families and for other runtimes. */
@@ -68,7 +83,10 @@ const RULES: [RegExp, ToolTarget][] = [
 ];
 
 export function targetForTool(tool: string): ToolTarget {
-  const t = tool.replace(/^mcp__.*?__/, '').replace(/^functions\./, '');
+  // Two namespacing styles reach the town: an MCP server's `mcp__<server>__<tool>`
+  // and OpenCrabs' own `functions__<group>__<tool>`. Both wrap a name the table
+  // already knows, so the wrapper comes off before lookup.
+  const t = tool.replace(/^(?:mcp|functions)__.*?__/, '').replace(/^functions\./, '');
   const exact = EXACT[t] ?? EXACT[t.toLowerCase()];
   if (exact) return exact;
   for (const [re, target] of RULES) if (re.test(t)) return target;
@@ -86,12 +104,12 @@ export const THINK_TARGET: ToolTarget = { place: 'hall', style: 'desk', verb: 't
 export const IDLE_TARGET: ToolTarget = { place: 'tavern', style: 'sit', verb: 'idle' };
 
 export const PLACE_LABEL: Record<Place, string> = {
-  library: 'Library',
-  workshop: 'Workshop',
-  forge: 'Forge',
-  post: 'Post office',
-  observatory: 'Observatory',
-  hall: 'Town hall',
-  tavern: 'Tavern',
-  market: 'Market',
+  library: 'Coral Archive',
+  workshop: 'Shell Workshop',
+  forge: 'Vent Forge',
+  post: 'Tide Post',
+  observatory: 'Lighthouse',
+  hall: 'Reef Hall',
+  tavern: 'Kelp Bar',
+  market: 'Reef Market',
 };
