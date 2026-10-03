@@ -229,25 +229,28 @@ export function paintReefBuilding(kind: BuildingKind, worldW: number, lit: boole
   // The forge's stack was a chimney silhouette: a tall, narrow, capped column
   // is a chimney no matter what colour it is painted, and it was the second
   // strongest land tell after the roofs. A hydrothermal vent is the same
-  // placement with the opposite profile: short, splayed at the base, tapering
-  // to an open mouth that the plume emitter sits on.
+  // placement with the opposite profile: a low, splayed mound that barely
+  // clears the roof, tapering to an open mouth the plume emitter sits on.
+  // It must stay LOW: a vent that rises most of the building height still
+  // reads as a brick stack, which is what the first pass got wrong.
   if (kind === 'forge') {
-    const sx = Math.round(w * 0.78), sw = Math.max(5, Math.round(w * 0.16));
-    const base = roofBase - Math.round(h * 0.02);
-    const top = Math.round(h * 0.06);
-    const rows = base - top;
-    for (let i = 0; i < rows; i++) {
-      const t = i / Math.max(1, rows);
-      const half = Math.max(2, Math.round((sw / 2) * (1 - t * 0.62)));
+    const sw = Math.max(8, Math.round(w * 0.3));
+    const sx = Math.round(w * 0.62) - Math.round(sw / 2);
+    const base = roofBase;
+    const rise = Math.max(5, Math.round(h * 0.14));
+    for (let i = 0; i < rise; i++) {
+      const t = i / Math.max(1, rise - 1);
+      const half = Math.max(3, Math.round((sw / 2) * (1 - t * 0.72)));
       const cx = sx + Math.round(sw / 2);
-      p.rect(cx - half, base - i, half * 2, 1, i % 5 === 0 ? ROCK.top : ROCK.body);
+      p.rect(cx - half, base - i, half * 2, 1, i % 4 === 0 ? ROCK.top : ROCK.body);
       p.px(cx - half, base - i, ROCK.dark);
       p.px(cx + half - 1, base - i, ROCK.dark);
     }
     // An open mouth, ringed and shadowed, instead of a flat cap.
-    const mw = Math.max(3, Math.round(sw * 0.42));
-    p.rect(sx + Math.round(sw / 2) - mw, top - 1, mw * 2, 3, '#2a2329');
-    p.hline(sx + Math.round(sw / 2) - mw, top + 2, mw * 2, ROCK.dark);
+    const mw = Math.max(2, Math.round(sw * 0.2));
+    const mouth = base - rise + 1;
+    p.rect(sx + Math.round(sw / 2) - mw, mouth, mw * 2, 2, '#2a2329');
+    p.hline(sx + Math.round(sw / 2) - mw - 1, mouth + 2, mw * 2 + 2, ROCK.dark);
   }
 
   return submerge(p.canvas);
