@@ -214,13 +214,13 @@ export function buildTownLocal(): TownMap {
     id, kind, x, y, w, h, door: { x: x + Math.floor(w / 2), y: y + h }, porch: [], label,
   });
   const buildings: Building[] = [
-    mk('hall', 'hall', 26, 6, 11, 5, 'Town hall'),
-    mk('library', 'library', 4, 6, 11, 5, 'Library'),
-    mk('workshop', 'workshop', 46, 6, 10, 5, 'Workshop'),
-    mk('forge', 'forge', 47, 25, 9, 5, 'Forge'),
-    mk('post', 'post', 3, 25, 10, 5, 'Post office'),
-    mk('observatory', 'observatory', 16, 25, 7, 5, 'Observatory'),
-    mk('tavern', 'tavern', 38, 25, 8, 5, 'Tavern'),
+    mk('hall', 'hall', 26, 6, 11, 5, 'Reef Hall'),
+    mk('library', 'library', 4, 6, 11, 5, 'Coral Archive'),
+    mk('workshop', 'workshop', 46, 6, 10, 5, 'Shell Workshop'),
+    mk('forge', 'forge', 47, 25, 9, 5, 'Vent Forge'),
+    mk('post', 'post', 3, 25, 10, 5, 'Tide Post'),
+    mk('observatory', 'observatory', 16, 25, 7, 5, 'Lighthouse'),
+    mk('tavern', 'tavern', 38, 25, 8, 5, 'Kelp Bar'),
   ];
   buildings[0]!.door = { x: 31, y: 11 };
   buildings[1]!.door = { x: 10, y: 11 };
