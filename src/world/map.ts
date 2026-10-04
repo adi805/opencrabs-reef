@@ -80,6 +80,34 @@ function stroke(points: Point[], width: number, put: (x: number, y: number) => v
   }
 }
 
+/**
+ * A meandering channel instead of a street. Every lane on the map used to be a
+ * straight two-point stroke, and a set of straight lanes meeting at right
+ * angles is a street grid: it was the last thing in the frame that still read
+ * as a village plan rather than a reef flat. The endpoints are untouched, so
+ * every station stays reachable and pathing is unchanged; only the line
+ * between them wanders, the way a sand channel scoured by a current does.
+ */
+function bend(points: Point[], amplitude: number, put: (x: number, y: number) => void, width: number): void {
+  const out: Point[] = [];
+  for (let i = 0; i + 1 < points.length; i++) {
+    const a = points[i]!, b = points[i + 1]!;
+    const steps = Math.max(Math.abs(b.x - a.x), Math.abs(b.y - a.y), 2);
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
+    const phase = (i * 2.3) % 6.283;
+    for (let s = 0; s < steps; s++) {
+      const t = s / steps;
+      // Zero offset at both ends, so the waypoints themselves never move.
+      const env = Math.sin(Math.PI * t);
+      const off = Math.sin(t * 7.1 + phase) * amplitude * env;
+      out.push({ x: a.x + (b.x - a.x) * t + nx * off, y: a.y + (b.y - a.y) * t + ny * off });
+    }
+  }
+  out.push(points[points.length - 1]!);
+  stroke(out, width, put);
+}
+
 export function buildTownLocal(): TownMap {
   const r = mulberry(4321);
   const ground: number[][] = [];
@@ -102,17 +130,17 @@ export function buildTownLocal(): TownMap {
 
   // ---- roads
   const putRoad = (x: number, y: number) => road.add(key(x, y));
-  stroke([{ x: 1, y: 22 }, { x: 8, y: 20 }, { x: 16, y: 22 }, { x: 23, y: 21 }], 3, putRoad);           // west street
-  stroke([{ x: 40, y: 21 }, { x: 48, y: 23 }, { x: 56, y: 21 }, { x: 62, y: 22 }], 3, putRoad);          // east street
-  stroke([{ x: 31, y: 1 }, { x: 31, y: 16 }], 3, putRoad);                                               // north avenue (plateau)
-  stroke([{ x: 31, y: 27 }, { x: 30, y: 34 }, { x: 31, y: 40 }], 3, putRoad);                            // south avenue
-  stroke([{ x: 2, y: 40 }, { x: 15, y: 39 }, { x: 28, y: 40 }, { x: 44, y: 39 }, { x: 60, y: 40 }], 2, putRoad); // home street, south of the houses
-  stroke([{ x: 10, y: 12 }, { x: 10, y: 21 }], 2, putRoad);                                              // library lane
-  stroke([{ x: 51, y: 12 }, { x: 51, y: 21 }], 2, putRoad);                                              // workshop lane
-  stroke([{ x: 9, y: 24 }, { x: 9, y: 31 }], 2, putRoad);                                                // post lane
-  stroke([{ x: 19, y: 24 }, { x: 20, y: 31 }], 2, putRoad);                                              // observatory lane
-  stroke([{ x: 42, y: 24 }, { x: 43, y: 31 }], 2, putRoad);                                              // tavern lane
-  stroke([{ x: 50, y: 24 }, { x: 50, y: 31 }], 2, putRoad);                                              // forge lane
+  bend([{ x: 1, y: 22 }, { x: 8, y: 20 }, { x: 16, y: 22 }, { x: 23, y: 21 }], 3.0, putRoad, 3);           // west channel
+  bend([{ x: 40, y: 21 }, { x: 48, y: 23 }, { x: 56, y: 21 }, { x: 62, y: 22 }], 3.0, putRoad, 3);          // east channel
+  bend([{ x: 31, y: 1 }, { x: 31, y: 16 }], 2.8, putRoad, 3);                                               // north channel (plateau)
+  bend([{ x: 31, y: 27 }, { x: 30, y: 34 }, { x: 31, y: 40 }], 3.0, putRoad, 3);                            // south channel
+  bend([{ x: 2, y: 40 }, { x: 15, y: 39 }, { x: 28, y: 40 }, { x: 44, y: 39 }, { x: 60, y: 40 }], 3.4, putRoad, 2); // home channel, south of the houses
+  bend([{ x: 10, y: 12 }, { x: 10, y: 21 }], 2.7, putRoad, 2);                                              // library channel
+  bend([{ x: 51, y: 12 }, { x: 51, y: 21 }], 2.7, putRoad, 2);                                              // workshop channel
+  bend([{ x: 9, y: 24 }, { x: 9, y: 31 }], 2.5, putRoad, 2);                                                // post channel
+  bend([{ x: 19, y: 24 }, { x: 20, y: 31 }], 2.7, putRoad, 2);                                              // observatory channel
+  bend([{ x: 42, y: 24 }, { x: 43, y: 31 }], 2.7, putRoad, 2);                                              // tavern channel
+  bend([{ x: 50, y: 24 }, { x: 50, y: 31 }], 2.5, putRoad, 2);                                              // forge channel
 
   // ---- lagoon channel and tide pool
   // The town sits on a reef flat, so water is not a river to be crossed: it is
@@ -140,7 +168,7 @@ export function buildTownLocal(): TownMap {
   }
   // Causeways: the east street and the home street keep their packed-sand
   // surface across the water, so pathing still reaches the east bank.
-  for (const y of [22, 40]) stroke([{ x: 55, y }, { x: 63, y }], 2, putRoad);
+  for (const y of [22, 40]) bend([{ x: 55, y }, { x: 63, y }], 2.3, putRoad, 2);
 
   // ---- write ground
   // The square is a lagoon, not a cobbled plaza. A grey cobblestone centre was
@@ -187,14 +215,17 @@ export function buildTownLocal(): TownMap {
     }
   }
   for (const [x, y, t] of eroded) { ground[y]![x] = t; if (t === T.pathEdge || t === T.pathGrassy || t === T.pathStones || t === T.pathMud) road.add(key(x, y)); }
-  // plateau: rows 0..13 are raised; row 14 is the cliff face except at the stairs
-  for (const CLIFF_Y of [14]) {
-    for (let x = 1; x < LOCAL_W - 1; x++) {
-      if (water.has(key(x, CLIFF_Y))) continue;
-      if (road.has(key(x, CLIFF_Y))) { ground[CLIFF_Y]![x] = T.path2; continue; }
-      ground[CLIFF_Y]![x] = T.cliff;
-      if (CLIFF_Y === 14 && !road.has(key(x, 13)) && !water.has(key(x, 13)) && ground[13]![x] !== T.shore) ground[13]![x] = T.cliffTop;
+  // plateau: the cliff face wanders instead of sitting on one row. A
+  // dead-straight scarp running the width of the map reads as a landscaped
+  // retaining wall, which is a garden feature rather than a reef edge.
+  for (let x = 1; x < LOCAL_W - 1; x++) {
+    const cy = Math.max(13, Math.min(15, 14 + Math.round(Math.sin(x * 0.31) * 1.2 + Math.sin(x * 0.11 + 0.7) * 0.9)));
+    for (let y = cy; y <= 15; y++) {
+      if (water.has(key(x, y))) continue;
+      if (road.has(key(x, y))) { ground[y]![x] = T.path2; continue; }
+      ground[y]![x] = T.cliff;
     }
+    if (!road.has(key(x, cy - 1)) && !water.has(key(x, cy - 1)) && ground[cy - 1]![x] !== T.shore) ground[cy - 1]![x] = T.cliffTop;
   }
   // a natural ramp climbs from the lagoon to the hall: wet sand, not paving
   for (let y = 11; y <= 15; y++) for (let x = 30; x <= 32; x++) if (ground[y]![x] !== T.stairs) ground[y]![x] = (x + y) % 2 ? T.path : T.path2;
