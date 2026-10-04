@@ -326,46 +326,41 @@ function drawFrame(look: Look, facing: Facing, mode: Mode, phase: number): Paint
   // Six legs, three to a side. Each starts and lands lower than the last, so a
   // bank reads as three limbs instead of one thick mass with a splayed foot.
   const legs = (dir: number, far: boolean) => {
+    // Legs are chitin, not cloth: their tone is derived from the shell so they
+    // read as this creature's limbs. Flat charcoal against a bright carapace
+    // read as trousers, and legs hanging straight down read as a skirt, so the
+    // spread is wide and the drop shallow.
+    const near = shade(shell, 0.58), joint = shade(shell, 0.86), tip = shade(shell, 0.4);
     for (let i = 0; i < 3; i++) {
       const lift = (walking && (i + phase + (dir > 0 ? 1 : 0)) % 2 === 0 ? 1 : 0) + (sitting ? 2 : 0);
-      // Each leg hangs off its OWN hip point and carries its own tone. Sharing
-      // one hip made the three strokes converge into a single thick limb with
-      // three tips at the floor; separate hips plus a tone gradient is what
-      // makes the count read as three legs.
-      const col = far ? shade(look.pants, 0.5) : shade(look.pants, [1.2, 0.85, 0.6][i]!);
-      const hipX = dir < 0 ? 4 + i * 2 : 15 - i * 2;
-      const hipY = 16 + i * 2 + baseY;
-      const kneeX = hipX + dir * (4 - i), kneeY = 20 + i * 2 + baseY - lift;
-      const footX = hipX + dir * (6 - i), footY = 30 - i + oy - lift;
+      const col = far ? shade(shell, 0.4) : near;
+      const hipX = dir < 0 ? 5 : 14;
+      const hipY = 19 + i + baseY;
+      const kneeX = hipX + dir * (4 + i), kneeY = hipY + 1 - lift;
+      const footX = hipX + dir * (6 + i), footY = hipY + 4 + oy - lift;
       stroke({ x: hipX, y: hipY }, { x: kneeX, y: kneeY }, col, 1);
-      stroke({ x: kneeX, y: kneeY }, { x: footX, y: footY }, shade(col, 0.78), 1);
-      px(kneeX, kneeY, shade(col, 1.3));
+      stroke({ x: kneeX, y: kneeY }, { x: footX, y: footY }, far ? col : tip, 1);
+      px(kneeX, kneeY, far ? col : joint);
       px(footX, footY, INK);
     }
   };
 
-  // Pincer: a short arm out to the pose's grip point, then one broad palm with
-  // two jaws and an open notch between them. Two straight digits would read as
-  // a hand again, so the gap is the whole point. The clamp keeps the widest
-  // work poses inside the frame instead of clipping against the border.
   const claw = (root: Point, tip: Point, dir: number, far: boolean) => {
-    const col = far ? shellDark : shell;
-    const lite = far ? shellDark : shellLite;
-    // 2px arm. The palm is wider than the arm, so the limb has a joint read.
+    const col = far ? shade(shell, 0.5) : shell;
+    const lite = far ? col : shade(shell, 1.2);
     stroke(root, tip, col, 2);
-    // Palm sits outboard of the carapace and is outlined, so it never merges
-    // into the shell. The bounds keep every pose (walk, work, reaction) inside
-    // the 32px frame with a transparent gutter on all four sides.
-    const px0 = dir > 0 ? Math.min(tip.x, 16) : Math.max(tip.x - 5, -3);
+    // The pincer is the whole crab read, so it is the widest part of the
+    // silhouette and it sits outboard of the carapace. Bounds keep every pose
+    // inside the frame with a transparent gutter on all four sides.
+    const px0 = dir > 0 ? Math.min(tip.x, 16) : Math.max(tip.x - 6, -4);
     const py0 = tip.y - 2;
-    rect(px0, py0, 6, 5, INK);
-    // Two prongs with an open gap between them. A single solid block reads as
-    // a mitten or a vent; the dark notch is what makes it a pincer.
-    rect(px0 + 1, py0 + 1, 4, 1, col);
-    rect(px0 + 1, py0 + 3, 4, 1, col);
-    px(px0 + 2, py0 + 1, lite);
-    // Inboard shoulder, joining the palm back to the arm.
-    rect(dir > 0 ? px0 : px0 + 5, py0 + 2, 1, 1, col);
+    rect(px0, py0, 7, 6, INK);
+    // Two prongs with an open notch between them. A single block reads as a
+    // mitten or a vent; the dark gap is what makes it a pincer.
+    rect(px0 + 1, py0 + 1, 5, 2, col);
+    rect(px0 + 1, py0 + 4, 5, 1, col);
+    rect(px0 + 1, py0 + 1, 3, 1, lite);
+    rect(dir > 0 ? px0 : px0 + 6, py0 + 3, 1, 1, col);
   };
 
   // The pincer jaw that closes over a held prop, so nothing floats free.
@@ -379,10 +374,13 @@ function drawFrame(look: Look, facing: Facing, mode: Mode, phase: number): Paint
   const eyestalks = () => {
     const top = 5 + baseY + headDip;
     const stalk = (x: number) => {
-      rect(x, top + 3, 1, 5, under);
-      px(x, top + 7, underDark);
+      // Stalks are chitin. In the residents' skin tone they read as bare
+      // human limbs held up, which is the one thing this must not look like.
+      const stalkCol = shade(shell, 0.74);
+      rect(x, top + 3, 1, 5, stalkCol);
+      px(x, top + 7, shade(shell, 0.5));
       rect(x - 1, top, 3, 3, INK);
-      rect(x - 1, top, 3, 1, underDark);
+      rect(x - 1, top, 3, 1, shade(shell, 0.5));
       px(x + 1, top + 1, blink ? underDark : '#eef6f4');
     };
     if (side) stalk(13); else { stalk(5); stalk(14); }
