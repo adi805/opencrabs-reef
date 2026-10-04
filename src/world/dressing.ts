@@ -13,7 +13,7 @@ export const PROP_ANCHORS: Partial<Record<PropKind, readonly [number, number]>> 
   lectern: [14, 16], telescope: [16, 20], postbox: [10, 16], desk: [20, 12], stall: [20, 12],
   bush: [18, 12], rock: [14, 10], cart: [28, 18],
   grave0: [12, 14], grave1: [12, 14], grave2: [12, 14],
-  banner: [12, 30], flowerBox: [18, 10], planter: [14, 16],
+  flowerBox: [18, 10], planter: [14, 16],
   fountain: [36, 30], chapel: [40, 46], marketStall0: [30, 28], marketStall1: [30, 28],
   hedge: [16, 12], dock: [20, 14],
 };

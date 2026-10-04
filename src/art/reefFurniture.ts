@@ -97,20 +97,30 @@ function ledge(p: Painter, W: number, H: number, r: Rng): void {
 
 /** A shell trough holding a cluster of anemones: planter, flower box. */
 function anemoneBed(p: Painter, W: number, H: number, r: Rng): void {
-  const trough = Math.max(3, Math.round(H * 0.42));
+  // A rubble bank, not a planter. The old version drew a rectangular trough
+  // with a lit rim, and the vision pass named it every time: "rectangular
+  // troughs, they read as garden planters or raised beds". Shell rubble
+  // piles up in an uneven bank, so build the bed from overlapping discs.
   const baseY = H - 1;
-  p.box(1, baseY - trough, W - 2, trough, SHELL.body, SHELL.dark);
-  p.hline(2, baseY - trough + 1, W - 4, SHELL.lit);
+  const bank = Math.max(3, Math.round(H * 0.34));
+  for (let x = 1; x < W - 1; x += 2 + Math.round(r() * 2)) {
+    const hh = Math.max(2, Math.round(bank * (0.6 + r() * 0.7)));
+    p.disc(x, baseY - Math.round(hh * 0.35), hh, r() < 0.5 ? SHELL.body : SHELL.dark);
+  }
+  for (let x = 1; x < W - 2; x += 3 + Math.round(r() * 3)) {
+    p.px(x, baseY - Math.round(bank * 0.5), SHELL.lit);
+  }
   const n = Math.max(3, Math.round(W / 9));
   for (let i = 0; i < n; i++) {
     const cx = 3 + Math.round(((W - 6) * i) / Math.max(1, n - 1)) + Math.round((r() - 0.5) * 2);
-    const h = 4 + Math.round(r() * Math.max(2, H * 0.42));
+    const top = baseY - bank - 1;
+    const h = 4 + Math.round(r() * Math.max(2, H * 0.3));
     for (let k = 0; k < 5; k++) {
       const dx = Math.round(Math.sin((k / 5) * Math.PI * 2) * 2);
-      p.vline(cx + dx, baseY - trough - h, h, k % 2 ? ANEM.body : ANEM.lit);
-      p.px(cx + dx, baseY - trough - h - 1, ANEM.lit);
+      p.vline(cx + dx, top - h, h, k % 2 ? ANEM.body : ANEM.lit);
+      p.px(cx + dx, top - h - 1, ANEM.lit);
     }
-    p.disc(cx, baseY - trough - 1, 1, ANEM.dark);
+    p.disc(cx, top, 1, ANEM.dark);
   }
 }
 
