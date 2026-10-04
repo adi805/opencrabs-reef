@@ -20,6 +20,7 @@ import http from 'node:http';
 import path from 'node:path';
 
 import { contentTypeFor, resolveStatic } from './lib/staticFiles.mjs';
+import { createTownBridge } from './lib/townBridge.mjs';
 import {
   PUBLIC_VERSION,
   SNAPSHOT_VERSION,
@@ -137,6 +138,9 @@ export function createReefServer(options) {
   const salt = saltFor(options.db, options.salt);
   const ring = [];
   const clients = new Set();
+  /** Town-contract clients: the shipped app still speaks `/api/town/*`. */
+  const townClients = new Set();
+  const town = createTownBridge();
   /** `null` means "no usable source right now"; the server keeps answering. */
   let db = null;
   let source = { status: 'starting', reason: null, next_attempt: 0 };
@@ -181,6 +185,14 @@ export function createReefServer(options) {
     };
     ring.push(event);
     while (ring.length > options.ringLength) ring.shift();
+    const townEvents = town.ingest(event);
+    for (const res of townClients) {
+      try {
+        for (const t of townEvents) res.write(frame('town', t));
+      } catch {
+        townClients.delete(res);
+      }
+    }
     for (const res of clients) {
       try {
         res.write(frame('tick', event));
@@ -294,6 +306,38 @@ export function createReefServer(options) {
       res.write(frame('replay_done', { replayed, cursor: seen }));
       clients.add(res);
       req.on('close', () => clients.delete(res));
+      return;
+    }
+
+    if (route === '/api/town/snapshot') {
+      json(res, 200, town.snapshot(residentsFrom(ring)));
+      return;
+    }
+
+    if (route === '/api/town/events') {
+      const since = Number(url.searchParams.get('since') ?? 0);
+      res.writeHead(200, {
+        ...SECURITY_HEADERS,
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no',
+      });
+      res.write('retry: 2000\n\n');
+      res.write(frame('hello', { streamId: town.streamId, at: Math.floor(Date.now() / 1000), bridge: town.bridge() }));
+      for (const event of town.replay(since)) res.write(frame('town', event));
+      townClients.add(res);
+      const beat = setInterval(() => {
+        try {
+          res.write(frame('heartbeat', { bridge: town.bridge() }));
+        } catch {
+          clearInterval(beat);
+          townClients.delete(res);
+        }
+      }, 15000);
+      req.on('close', () => {
+        clearInterval(beat);
+        townClients.delete(res);
+      });
       return;
     }
 
