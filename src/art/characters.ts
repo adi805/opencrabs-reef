@@ -305,16 +305,22 @@ function drawFrame(look: Look, facing: Facing, mode: Mode, phase: number): Paint
       rect(cx + cw - 4, y, 4, 1, shellDark);
       if (i < 3) rect(cx + 1, y, cw - 5, 1, shellLite);
     }
-    // Rim and plate lines: shell texture, not a garment.
-    rect(3, 17 + baseY, 14, 1, markDark);
-    rect(3, 18 + baseY, 14, 1, mark);
+    // Shell texture: scattered speckle, never a straight band. Two full-width
+    // horizontal bars here read as a belt or a garment sash across the shell.
+    for (let i = 0; i < 6; i++) {
+      const sx = 4 + ((i * 5 + (i % 2) * 3) % 11);
+      px(sx, 17 + baseY + (i % 2), markDark);
+      px(sx + 1, 18 + baseY - (i % 2), mark);
+    }
     for (let i = 0; i < 4; i++) px(6 + i * 2, 20 + baseY, markDark);
     if (look.apron) { rect(8, 14 + baseY, 5, 3, shade(shell, 1.3)); rect(8, 14 + baseY, 5, 1, shellLite); }
     if (look.beard) for (let i = 0; i < 3; i++) rect(6 + i * 3, 21 + baseY + (i % 2), 2, 1, '#c9d8cf');
-    if (look.hat === 'brim') rect(6, 12 + baseY, 8, 1, mark);
-    else if (look.hat === 'cap') rect(8, 12 + baseY, 4, 1, mark);
-    else if (look.hat === 'band') rect(3, 19 + baseY, 14, 1, mark);
-    else if (look.hat === 'goggles') { rect(6, 14 + baseY, 2, 2, '#c9d8cf'); rect(13, 14 + baseY, 2, 2, '#c9d8cf'); }
+    // Crest variants, not headwear: raised bumps along the shell ridge. Bars
+    // at these y values read as a hat brim, a visor or a belt.
+    if (look.hat === 'brim') for (let i = 0; i < 3; i++) px(7 + i * 3, 12 + baseY - (i === 1 ? 1 : 0), mark);
+    else if (look.hat === 'cap') { px(9, 12 + baseY, mark); px(10, 11 + baseY, mark); px(11, 12 + baseY, mark); }
+    else if (look.hat === 'band') for (let i = 0; i < 3; i++) px(5 + i * 4, 19 + baseY + (i % 2), mark);
+    else if (look.hat === 'goggles') { px(7, 14 + baseY, '#c9d8cf'); px(12, 14 + baseY, '#c9d8cf'); }
   };
 
   // Six legs, three to a side. Each starts and lands lower than the last, so a
