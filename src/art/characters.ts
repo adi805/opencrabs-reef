@@ -326,22 +326,20 @@ function drawFrame(look: Look, facing: Facing, mode: Mode, phase: number): Paint
   // Six legs, three to a side. Each starts and lands lower than the last, so a
   // bank reads as three limbs instead of one thick mass with a splayed foot.
   const legs = (dir: number, far: boolean) => {
-    // Legs are chitin, not cloth: their tone is derived from the shell so they
-    // read as this creature's limbs. Flat charcoal against a bright carapace
-    // read as trousers, and legs hanging straight down read as a skirt.
+    // Legs are chitin, not cloth: tone derives from the shell so they read as
+    // this creature's limbs rather than trousers.
     const near = shade(shell, 0.58), joint = shade(shell, 0.86), tip = shade(shell, 0.4);
-    // Three limbs a side, each on its own hip, own reach and own landing. Three
-    // legs sharing one hip and one stride stacked into a single thick limb at
-    // 32px, which read as a biped with a splayed foot. Spreading the hips 3px
-    // apart down the flank and shortening the rear reach is what makes the
-    // bank read as three separate walking legs.
+    // Three limbs a side. Each needs its OWN hip column AND its own landing
+    // row: sharing one hip stacks the upper segments into a single thick limb,
+    // and sharing one landing row fuses the tips into a splayed foot. Both
+    // together are what made six legs read as a biped.
     for (let i = 0; i < 3; i++) {
       const lift = (walking && (i + phase + (dir > 0 ? 1 : 0)) % 2 === 0 ? 1 : 0) + (sitting ? 2 : 0);
       const col = far ? shade(shell, 0.4) : near;
-      const hipX = dir < 0 ? 5 : 14;
-      const hipY = 18 + i * 3 + baseY;
-      const kneeX = hipX + dir * (4 - i), kneeY = hipY + 2 - lift;
-      const footX = hipX + dir * (7 - i * 2), footY = hipY + 5 + oy - lift;
+      const hipX = dir < 0 ? 3 + i * 2 : 17 - i * 2;
+      const hipY = 16 + i * 2 + baseY;
+      const kneeX = hipX + dir * 3, kneeY = hipY + 2 - lift;
+      const footX = hipX + dir * (5 - i), footY = 28 - i * 2 + oy - lift;
       stroke({ x: hipX, y: hipY }, { x: kneeX, y: kneeY }, col, 1);
       stroke({ x: kneeX, y: kneeY }, { x: footX, y: footY }, far ? col : tip, 1);
       px(kneeX, kneeY, far ? col : joint);
