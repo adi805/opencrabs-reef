@@ -25,3 +25,6 @@ runtime/
 brag-output/
 brag-src/
 output/
+
+# Dot-prefixed probes in scripts/ are per-machine scratch, not project source.
+scripts/.*
