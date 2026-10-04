@@ -6,12 +6,16 @@ import { Painter, hashString, mulberry, outline, shade } from './painter';
  * horizontal gutter and five above the body leave room for tools and ink.
  * Native texels, row-major grid; scene scale is independent of atlas scale.
  * Side work is authored left and mirrored by the renderer for right.
+ *
+ * The residents are crabs: a domed carapace, two eyestalks, a pair of pincers
+ * and six jointed legs. The body grid, the baseline and every prop anchor are
+ * unchanged, so placement and tools still line up with the old rig.
  */
 export const FRAME_W = 32;
 export const FRAME_H = 40;
 export const CHARACTER_SCALE = 1;
 export const FRAME_COLUMNS = 16;
-/** Bottom edge of the grounded boot outline, measured from the cell top. */
+/** Bottom edge of the planted legs, measured from the cell top. */
 export const CHARACTER_BASELINE = 35;
 export const WALK_FRAME_COUNT = 8;
 export const IDLE_FRAME_COUNT = 4;
@@ -52,7 +56,7 @@ export function reactionFrame(kind: Reaction, facing: Facing, index: number): nu
 }
 
 // Seconds per authored pose. Hammer: prepare, anticipate, impact, recover.
-// Idle holds neutral; the blink is short, and never raises/lowers the feet.
+// Idle holds neutral; the blink is short, and never raises/lowers the legs.
 export const IDLE_DURATIONS: readonly number[] = [2.8, 0.65, 0.12, 0.65];
 export const WORK_DURATIONS: Readonly<Record<WorkStyle, readonly number[]>> = {
   hammer: [0.28, 0.24, 0.12, 0.36],
@@ -81,19 +85,22 @@ export function poseFrameAt(kind: 'idle' | 'work' | 'reaction', elapsedSeconds: 
 
 export type RoleClass = 'coordinator' | 'research' | 'fabrication' | 'review' | 'tooling' | 'general' | 'scheduled';
 
+/**
+ * A crab's look. The field names are inherited from the humanoid rig that this
+ * replaced, so read them as: hair = carapace marking colour, cloth/cloth2 =
+ * shell top and shaded flank, pants = leg colour, skin = underside and
+ * eyestalk, hat = crest/barnacle crest variant, apron = a raised shell plate,
+ * beard = a barnacle cluster.
+ */
 export interface Look {
   hair: string;
-  hairStyle: 'short' | 'long' | 'bun' | 'bald' | 'mohawk';
   cloth: string;
   cloth2: string;
   pants: string;
   skin: string;
   hat: 'none' | 'cap' | 'hood' | 'band' | 'brim' | 'goggles';
   apron: boolean;
-  /** Optional for callers with hand-authored legacy looks. */
-  garment?: 'jacket' | 'tunic' | 'coat';
   beard: boolean;
-  belt: boolean;
 }
 
 /** A stable look from a stable id, nudged by role so jobs read at a glance. */
@@ -103,7 +110,6 @@ export function lookFor(id: string, role: RoleClass): Look {
   const cloth = pick(CLOTH);
   const look: Look = {
     hair: pick(HAIR),
-    hairStyle: pick(['short', 'long', 'long', 'bun', 'short', 'bald', 'mohawk'] as const),
     cloth,
     cloth2: shade(cloth, 0.72),
     pants: pick(['#4a4548', '#3f3a44', '#4a3d36', '#3a4048']),
@@ -111,7 +117,6 @@ export function lookFor(id: string, role: RoleClass): Look {
     hat: r() < 0.35 ? 'brim' : 'none',
     apron: false,
     beard: r() < 0.2,
-    belt: true,
   };
   switch (role) {
     case 'coordinator': look.hat = 'brim'; look.cloth = pick(['#6b4a7a', '#5e3f78', '#3f5e7a']); break;
@@ -122,8 +127,6 @@ export function lookFor(id: string, role: RoleClass): Look {
     case 'scheduled': look.hat = 'hood'; look.cloth = pick(['#2f3a5a', '#3a3350', '#2f4a4a']); look.beard = false; break;
     default: break;
   }
-  look.garment = look.apron || role === 'scheduled' || role === 'coordinator' ? 'coat'
-    : role === 'research' || role === 'general' ? 'tunic' : 'jacket';
   look.cloth2 = shade(look.cloth, 0.72);
   return look;
 }
@@ -133,9 +136,6 @@ const HAT = '#8a6a3f';
 const HAT_DARK = '#6b4f2e';
 const STRAP = '#5a3d24';
 const BUCKLE = '#d9b34a';
-const FIN_DARK = '#33565f';
-const APRON = '#ad9270';
-const APRON_DARK = '#8a7454';
 
 export function paintCharacterSheet(look: Look): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
@@ -163,8 +163,8 @@ export function paintCharacterSheet(look: Look): HTMLCanvasElement {
 
 type Mode = 'walk' | 'idle' | WorkStyle | Reaction;
 type Point = { x: number; y: number };
-// Contact, recoil, passing, rise; repeat on the opposite leg. The planted
-// boot stays at y=28; passing feet lift, rather than both feet sliding.
+// Contact, recoil, passing, rise; repeat on the opposite side. Drives the body
+// bob and the claw swing; the six legs plant rather than slide.
 const GAIT = [
   { reach: -2, nearLift: 0, farLift: 0, bob: 0 },
   { reach: -1, nearLift: 1, farLift: 0, bob: 1 },
@@ -185,7 +185,14 @@ function drawFrame(look: Look, facing: Facing, mode: Mode, phase: number): Paint
   let lean = 0;
   const px = (x: number, y: number, c: string) => {
     const sourceX = x + 6 + lean;
-    p.px(mirror ? FRAME_W - 1 - sourceX : sourceX, y + 5, c);
+    const sx = mirror ? FRAME_W - 1 - sourceX : sourceX;
+    const sy = y + 5;
+    // One transparent pixel of gutter on every side. The sprite-sheet test
+    // pins this invariant, and it is also why a claw can never clip into the
+    // neighbouring cell. Every draw below goes through here, so no pose,
+    // lean offset or prop can break it.
+    if (sx < 1 || sx > FRAME_W - 2 || sy < 1 || sy > FRAME_H - 2) return;
+    p.px(sx, sy, c);
   };
   const rect = (x: number, y: number, w: number, h: number, c: string) => {
     for (let j = 0; j < h; j++) for (let k = 0; k < w; k++) px(x + k, y + j, c);
@@ -205,52 +212,15 @@ function drawFrame(look: Look, facing: Facing, mode: Mode, phase: number): Paint
   const blink = (idle || sitting) && phase === 2 || reaction && phase === 2;
   const hairDark = shade(look.hair, 0.7);
   const skinDark = shade(look.skin, 0.82);
-  const hand = (point: Point, far = false) => rect(point.x, point.y, 2, 2, far ? skinDark : look.skin);
 
-  // Tail, not legs. The residents swim: where the legs and boots were there is
-  // a single tapered fin that trails with the stroke, so the silhouette reads
-  // as a merfolk under the water rather than a villager standing on a road.
-  // The caudal fin beats on a slow phase so it moves as they do.
-  const tail = (baseX: number, lift: number) => {
-    const sway = Math.sin(phase * 0.8);
-    for (let i = 0; i < 8; i++) {
-      const t = i / 7;
-      const y = 21 + i - lift;
-      const w = Math.max(2, Math.round(5 * (1 - t * 0.5)));
-      const x = baseX + Math.round(Math.sin(t * 3.1 + phase * 0.8) * 2.4);
-      rect(x, y, w, 1, t > 0.66 ? FIN_DARK : t > 0.33 ? shade(look.pants, 0.78) : look.pants);
-    }
-    // Caudal fluke: one solid horizontal fan. A forked fin has two lobes, and
-    // at the 0.5 draw scale two dark lobes side by side read as two boots, so
-    // the forked version put the legs straight back on the sprite. A single
-    // wide blade cannot be mistaken for a pair of feet.
-    const finY = 28 - lift;
-    const finX = baseX + Math.round(sway * 2.4);
-    for (let d = -5; d <= 5; d++) {
-      const ad = Math.abs(d);
-      const drop = ad < 3 ? 0 : ad < 5 ? 1 : 2;
-      rect(finX + d, finY + drop, 1, 2 - (drop > 1 ? 1 : 0), ad > 3 ? FIN_DARK : look.pants);
-    }
-    rect(finX - 5, finY, 11, 1, FIN_DARK);
-  };
-  tail(side ? 8 : 8, walking ? gait.nearLift : sitting ? 3 : 0);
 
-  // Dorsal fin along the spine. This is the cue that survives every pose and
-  // every zoom level: nothing that walks on land carries a fin standing off
-  // its back.
-  for (let i = 0; i < 5; i++) {
-    const bx = (side ? 8 : 10) + (side ? -1 : 1) * Math.round(i * 0.25);
-    const by = 15 + oy + i;
-    const hgt = Math.max(1, 3 - Math.round(i * 0.6));
-    rect(bx, by, hgt, 1, i > 2 ? FIN_DARK : '#4a7d8c');
-  }
 
   // A weight transfer, not a perpetual vertical idle bounce.
   lean = idle && (phase === 1 || phase === 2) ? (side ? -1 : 1)
     : mode === 'fail' && phase === 2 && side ? -1 : 0;
   const shoulder = 13 + oy;
-  let handL: Point = { x: side ? 5 : 3, y: shoulder + 6 };
-  let handR: Point = { x: side ? 12 : 15, y: shoulder + 6 };
+  let handL: Point = { x: 0, y: shoulder + 6 };
+  let handR: Point = { x: side ? 12 : 19, y: shoulder + 6 };
   if (walking) {
     if (side) {
       // Oppose the near leg. Far arm is the same length, only shaded/occluded.
@@ -265,8 +235,8 @@ function drawFrame(look: Look, facing: Facing, mode: Mode, phase: number): Paint
     handL = { x: side ? 3 : 5, y: 22 };
     handR = { x: side ? 9 : 13, y: 22 };
   } else if (reaction) {
-    // Completion: chin up and one open-hand acknowledgement. Failure:
-    // both shoulders fold inward with the head down. Never the same shrug.
+    // Completion: carapace up and one raised claw. Failure: both claws fold
+    // inward and the eyestalks dip. Never the same shrug.
     const lift = [0, 1, 2, 0][phase]!;
     if (mode === 'complete') {
       const raised = phase === 1 || phase === 2;
@@ -310,120 +280,124 @@ function drawFrame(look: Look, facing: Facing, mode: Mode, phase: number): Paint
     }
   }
 
-  // Equal upper-arm and forearm segments. Bend the elbow with a fixed-length
-  // two-link construction; projection may shorten reach, never the anatomy.
-  const arm = (start: Point, end: Point, far: boolean) => {
-    const dx = end.x - start.x, dy = end.y - start.y;
-    const distance = Math.max(1, Math.hypot(dx, dy));
-    const bend = Math.sqrt(Math.max(0, 3 * 3 - distance * distance / 4));
-    const direction = start.x < 10 ? 1 : -1;
-    const elbow = { x: Math.round((start.x + end.x) / 2 - direction * dy / distance * bend),
-      y: Math.round((start.y + end.y) / 2 + direction * dx / distance * bend) };
-    const color = far ? look.cloth2 : look.cloth;
-    stroke(start, elbow, color);
-    stroke(elbow, end, color);
-    hand(end, far);
-  };
-  // Side arm is behind the torso; equal sleeve/hand length, darker plane.
-  if (side) arm({x:working && (mode === 'read' || mode === 'parcel' || mode === 'bellows') ? 9 : 12,y:shoulder}, handR, true);
+  // ---------------------------------------------------------------- anatomy
+  // OpenCrabs Reef: the residents are crabs. Same body grid, same baseline and
+  // the same prop anchors as before; the anatomy is what changed. A wide domed
+  // carapace, two eyestalks, a pair of pincers held out at the sides, and six
+  // jointed legs staggered in y so each reads as its own limb.
+  const shell = look.cloth, shellDark = look.cloth2, shellLite = shade(look.cloth, 1.18);
+  const under = look.skin, underDark = skinDark;
+  const mark = look.hair, markDark = hairDark;
+  const baseY = oy + (sitting ? 2 : 0);
 
-  const torsoTop = 12 + oy;
-  const garment = look.garment ?? (look.apron ? 'coat' : 'tunic');
-  const hem = garment === 'jacket' ? 19 : garment === 'tunic' ? 21 : 24;
-  const tx = side ? 6 : 5, tw = side ? 8 : 10;
-  rect(tx, torsoTop, tw, hem - 12, look.cloth);
-  rect(tx + tw - 2, torsoTop + 1, 2, hem - 13, look.cloth2);
-  if (garment === 'jacket') {
-    // Cropped square hem, lapels and a visible trouser waistband.
-    rect(tx, 18 + oy, tw, 1, look.cloth2);
-    rect(tx, 19 + oy, tw, 2, look.pants);
-    if (!back) { rect(side ? 6 : 8, 13 + oy, 1, 3, look.cloth2); rect(side ? 7 : 11, 13 + oy, 1, 2, look.cloth2); }
-  } else {
-    // Tunic flares once; coat has a longer split skirt, not a larger body.
-    const follow = walking ? [0,0,-1,-1,0,0,1,1][phase]! : 0;
-    rect(tx - 1 + follow, hem - 3 + oy, tw + 2, 2, look.cloth);
-    rect(tx - 1 + follow, hem - 1 + oy, tw + 2, 1, look.cloth2);
-    if (garment === 'coat') rect(side ? 9 : 9 + follow, 21 + oy, 2, 3, look.pants);
-  }
-  if (look.apron && !back) {
-    rect(side ? 6 : 7, torsoTop + 2, side ? 5 : 6, 9, APRON);
-    rect(side ? 6 : 7, torsoTop + 2, side ? 5 : 6, 1, APRON_DARK);
-    rect(side ? 6 : 7, torsoTop + 10, side ? 5 : 6, 1, APRON_DARK);
-  }
-  const follow = walking ? [0,1,1,0,0,-1,-1,0][phase]! : 0;
-  if (!side) {
-    for (let i = 0; i < 7; i++) px(back ? 6 + i : 13 - i, torsoTop + i, STRAP);
-    rect(back ? 13 : 4, torsoTop + 6 + follow, 3, 3, STRAP);
-    px(back ? 14 : 5, torsoTop + 6 + follow, HAT);
-  } else {
-    rect(11, torsoTop, 2, 7, STRAP);
-    rect(12, torsoTop + 6 + follow, 3, 3, STRAP);
-    px(13, torsoTop + 6 + follow, HAT);
-  }
-  if (look.belt) {
-    rect(tx, torsoTop + 6, tw, 1, STRAP);
-    if (!back) rect(side ? 8 : 9, torsoTop + 6, side ? 1 : 2, 1, BUCKLE);
-  }
-  if (!side) arm({x:15,y:shoulder}, handR, false);
-  arm({x:side ? 5 : 3,y:shoulder}, handL, false);
+  // Carapace: [left x, width] per row, crown to rim. Narrower than the frame so
+  // the claws and legs stay outside it, and wider than it is tall: that
+  // proportion is what separates a crab shell from a torso.
+  const CARA: readonly (readonly [number, number])[] = [
+    [7, 6], [5, 10], [4, 12], [3, 14], [3, 14], [4, 12], [5, 10], [7, 6],
+  ];
 
-  // ------------------------------------------------------------- head
-  const headTop = 2 + oy + headDip;
-  const faceX = side ? 6 : 5, faceW = side ? 8 : 10;
-  if (back) {
-    rect(5, headTop, 10, 10, look.hairStyle === 'bald' ? look.skin : look.hair);
-    rect(5, headTop + 8, 10, 2, look.hairStyle === 'bald' ? skinDark : hairDark);
-    if (look.hairStyle === 'long') { rect(5, headTop + 10, 10, 3, look.hair); rect(5, headTop + 12, 10, 1, hairDark); }
-    if (look.hairStyle === 'bun') rect(8, headTop - 2, 4, 2, look.hair);
-  } else {
-    rect(faceX, headTop + 1, faceW, 9, look.skin);
-    rect(faceX + faceW - 1, headTop + 2, 1, 7, skinDark);
-    rect(faceX, headTop + 9, faceW, 1, skinDark);
-    if (side) rect(faceX + 1, headTop + 5 + (blink ? 1 : 0), blink ? 2 : 1, blink ? 1 : 2, INK);
-    else { rect(faceX + 2, headTop + 5 + (blink ? 1 : 0), blink ? 2 : 1, blink ? 1 : 2, INK); rect(faceX + faceW - 3, headTop + 5 + (blink ? 1 : 0), blink ? 2 : 1, blink ? 1 : 2, INK); }
-    if (look.beard) { rect(faceX + 1, headTop + 8, faceW - 2, 2, look.hair); rect(faceX + 1, headTop + 9, faceW - 2, 1, hairDark); }
-    if (look.hairStyle !== 'bald') {
-      rect(faceX, headTop, faceW, 2, look.hair);
-      rect(faceX, headTop, faceW, 1, hairDark);
-      const drape = look.hairStyle === 'long' ? 10 : 4;
-      if (side) { rect(faceX + faceW - 1, headTop + 1, 2, drape + 1, look.hair); px(faceX + faceW, headTop + 1, hairDark); }
-      else { rect(faceX - 1, headTop + 1, 1, drape, look.hair); rect(faceX + faceW, headTop + 1, 1, drape, look.hair); }
-      if (look.hairStyle === 'bun') rect(side ? faceX + faceW : faceX + 2, headTop - 2, 3, 2, look.hair);
-      if (look.hairStyle === 'mohawk') rect(faceX + 3, headTop - 2, 2, 3, look.hair);
-    } else {
-      rect(faceX, headTop, faceW, 1, skinDark);
+  const carapace = () => {
+    for (let i = 0; i < CARA.length; i++) {
+      const [cx, cw] = CARA[i]!;
+      const y = 13 + i + baseY;
+      rect(cx, y, cw, 1, shell);
+      rect(cx + cw - 4, y, 4, 1, shellDark);
+      if (i < 3) rect(cx + 1, y, cw - 5, 1, shellLite);
     }
-  }
-  const brimY = headTop + 1;
-  switch (look.hat) {
-    case 'brim':
-      rect(side ? 1 : 2, brimY, side ? 17 : 16, 2, HAT);
-      rect(side ? 1 : 2, brimY + 1, side ? 17 : 16, 1, HAT_DARK);
-      rect(5, headTop - 2, 10, 3, HAT);
-      rect(5, headTop - 2, 10, 1, shade(HAT, 1.15));
-      rect(5, headTop, 10, 1, HAT_DARK);
-      break;
-    case 'cap':
-      rect(faceX - 1, headTop - 1, faceW + 2, 3, look.cloth2);
-      if (side) rect(faceX - 3, headTop + 1, 3, 1, look.cloth2); else rect(faceX - 1, headTop + 2, faceW + 2, 1, look.cloth2);
-      break;
-    case 'hood':
-      rect(faceX - 1, headTop - 1, faceW + 2, 3, look.cloth2);
-      rect(faceX - 1, headTop + 2, 1, 7, look.cloth2); rect(faceX + faceW, headTop + 2, 1, 7, look.cloth2);
-      break;
-    case 'band':
-      rect(faceX, headTop + 2, faceW, 1, BUCKLE);
-      break;
-    case 'goggles':
-      rect(faceX, headTop + 1, faceW, 2, INK);
-      px(faceX + 1, headTop + 1, '#7fb2dd'); if (!side) px(faceX + 5, headTop + 1, '#7fb2dd');
-      break;
-    default:
-      break;
-  }
+    // Rim and plate lines: shell texture, not a garment.
+    rect(3, 17 + baseY, 14, 1, markDark);
+    rect(3, 18 + baseY, 14, 1, mark);
+    for (let i = 0; i < 4; i++) px(6 + i * 2, 20 + baseY, markDark);
+    if (look.apron) { rect(8, 14 + baseY, 5, 3, shade(shell, 1.3)); rect(8, 14 + baseY, 5, 1, shellLite); }
+    if (look.beard) for (let i = 0; i < 3; i++) rect(6 + i * 3, 21 + baseY + (i % 2), 2, 1, '#c9d8cf');
+    if (look.hat === 'brim') rect(6, 12 + baseY, 8, 1, mark);
+    else if (look.hat === 'cap') rect(8, 12 + baseY, 4, 1, mark);
+    else if (look.hat === 'band') rect(3, 19 + baseY, 14, 1, mark);
+    else if (look.hat === 'goggles') { rect(6, 14 + baseY, 2, 2, '#c9d8cf'); rect(13, 14 + baseY, 2, 2, '#c9d8cf'); }
+  };
 
-  // Props share the exact wrist coordinates above. No detached dust/spark
-  // substitutes for hand motion. Bellows has leather folds, not a hammer.
+  // Six legs, three to a side. Each starts and lands lower than the last, so a
+  // bank reads as three limbs instead of one thick mass with a splayed foot.
+  const legs = (dir: number, far: boolean) => {
+    for (let i = 0; i < 3; i++) {
+      const lift = (walking && (i + phase + (dir > 0 ? 1 : 0)) % 2 === 0 ? 1 : 0) + (sitting ? 2 : 0);
+      // Each leg hangs off its OWN hip point and carries its own tone. Sharing
+      // one hip made the three strokes converge into a single thick limb with
+      // three tips at the floor; separate hips plus a tone gradient is what
+      // makes the count read as three legs.
+      const col = far ? shade(look.pants, 0.5) : shade(look.pants, [1.2, 0.85, 0.6][i]!);
+      const hipX = dir < 0 ? 4 + i * 2 : 15 - i * 2;
+      const hipY = 16 + i * 2 + baseY;
+      const kneeX = hipX + dir * (4 - i), kneeY = 20 + i * 2 + baseY - lift;
+      const footX = hipX + dir * (6 - i), footY = 30 - i + oy - lift;
+      stroke({ x: hipX, y: hipY }, { x: kneeX, y: kneeY }, col, 1);
+      stroke({ x: kneeX, y: kneeY }, { x: footX, y: footY }, shade(col, 0.78), 1);
+      px(kneeX, kneeY, shade(col, 1.3));
+      px(footX, footY, INK);
+    }
+  };
+
+  // Pincer: a short arm out to the pose's grip point, then one broad palm with
+  // two jaws and an open notch between them. Two straight digits would read as
+  // a hand again, so the gap is the whole point. The clamp keeps the widest
+  // work poses inside the frame instead of clipping against the border.
+  const claw = (root: Point, tip: Point, dir: number, far: boolean) => {
+    const col = far ? shellDark : shell;
+    const lite = far ? shellDark : shellLite;
+    // 2px arm. The palm is wider than the arm, so the limb has a joint read.
+    stroke(root, tip, col, 2);
+    // Palm sits outboard of the carapace and is outlined, so it never merges
+    // into the shell. The bounds keep every pose (walk, work, reaction) inside
+    // the 32px frame with a transparent gutter on all four sides.
+    const px0 = dir > 0 ? Math.min(tip.x, 16) : Math.max(tip.x - 5, -3);
+    const py0 = tip.y - 2;
+    rect(px0, py0, 6, 5, INK);
+    // Two prongs with an open gap between them. A single solid block reads as
+    // a mitten or a vent; the dark notch is what makes it a pincer.
+    rect(px0 + 1, py0 + 1, 4, 1, col);
+    rect(px0 + 1, py0 + 3, 4, 1, col);
+    px(px0 + 2, py0 + 1, lite);
+    // Inboard shoulder, joining the palm back to the arm.
+    rect(dir > 0 ? px0 : px0 + 5, py0 + 2, 1, 1, col);
+  };
+
+  // The pincer jaw that closes over a held prop, so nothing floats free.
+  const gripOver = (point: Point, far: boolean) => {
+    const col = far ? shellDark : shell;
+    rect(point.x - 1, point.y - 1, 3, 2, col);
+    rect(point.x - 1, point.y + 1, 3, 1, under);
+    px(point.x, point.y - 1, far ? col : shellLite);
+  };
+
+  const eyestalks = () => {
+    const top = 5 + baseY + headDip;
+    const stalk = (x: number) => {
+      rect(x, top + 3, 1, 5, under);
+      px(x, top + 7, underDark);
+      rect(x - 1, top, 3, 3, INK);
+      rect(x - 1, top, 3, 1, underDark);
+      px(x + 1, top + 1, blink ? underDark : '#eef6f4');
+    };
+    if (side) stalk(13); else { stalk(5); stalk(14); }
+  };
+
+  // A pincer has to clear the carapace or it reads as a lump on the shell, so
+  // the tip is pushed out past the rim. Work poses keep their authored grip.
+  const splay = (tip: Point, dir: number): Point =>
+    ({ x: dir > 0 ? Math.max(tip.x, 19) : Math.min(tip.x, 0), y: tip.y });
+  // Far limbs, then the shell, then the near limbs: the carapace occludes the
+  // far legs, and the near claw ends up in front of everything it should.
+  if (side) { legs(1, true); claw({ x: 14, y: 16 + baseY }, splay(handR, 1), 1, true); }
+  carapace();
+  legs(-1, false);
+  if (!side) legs(1, false);
+  eyestalks();
+  claw({ x: 5, y: 16 + baseY }, splay(handL, -1), -1, false);
+  if (!side) claw({ x: 14, y: 16 + baseY }, splay(handR, 1), 1, false);
+
+  // Props share the exact grip coordinates above. No detached dust/spark
+  // substitutes for claw motion. Bellows has leather folds, not a hammer.
   if (working) {
     const grip = side ? handL : handR;
     if (mode === 'hammer') {
@@ -500,14 +474,22 @@ function drawFrame(look: Look, facing: Facing, mode: Mode, phase: number): Paint
       rect(grip.x, grip.y - 2, phase === 2 ? 1 : 2, 2, BUCKLE);
       px(grip.x, grip.y - 2, '#f0d68b');
     }
-    // Fingers overlap the held object, preserving its wrist attachment.
-    hand(grip);
+    // The pincer closes over the held object, preserving its wrist anchor.
+    gripOver(grip, false);
     if (mode === 'read' || mode === 'parcel' || mode === 'bellows') {
-      hand(side ? handR : handL, side);
+      gripOver(side ? handR : handL, side);
     }
   }
 
+  // The ink outline paints the raw painter, bypassing the px gutter guard, and
+  // it widens the silhouette by one pixel on every side. Clear the outermost
+  // ring afterwards so every frame keeps the transparent gutter the sheet test
+  // pins, whatever the pose, the lean offset or the prop does.
   outline(p, INK);
+  p.ctx.clearRect(0, 0, FRAME_W, 1);
+  p.ctx.clearRect(0, FRAME_H - 1, FRAME_W, 1);
+  p.ctx.clearRect(0, 0, 1, FRAME_H);
+  p.ctx.clearRect(FRAME_W - 1, 0, 1, FRAME_H);
   return p;
 }
 

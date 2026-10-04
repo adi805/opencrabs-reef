@@ -43,15 +43,16 @@ try {
     const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
     const countColor = (data, color) => { const [r,g,b] = rgb(color); let n = 0; for(let i=0;i<data.length;i+=4) if(data[i]===r && data[i+1]===g && data[i+2]===b && data[i+3]) n++; return n; };
     const neutral = frame(art.idleFrame ? art.idleFrame('down', 0) : art.walkFrame('down', 0));
-    const skin = rgb(look.skin), hands = [[], []];
+    // The residents are crabs: six legs instead of arms with hands. Same
+    // invariant, colour-agnostic: the lowest opaque pixel in each half of the
+    // lower body band must sit at the same height, or the sprite stands crooked.
+    const lowest = [null, null];
     for (let y = Math.floor(art.FRAME_H * .5); y < art.FRAME_H; y++) for(let x=0; x<art.FRAME_W; x++) {
-      const i=(y*art.FRAME_W+x)*4, a=neutral.data;
-      if(a[i]===skin[0] && a[i+1]===skin[1] && a[i+2]===skin[2] && a[i+3]) {
-        if(x < art.FRAME_W/2 - 3) hands[0].push(y);
-        if(x >= art.FRAME_W/2 + 3) hands[1].push(y);
-      }
+      const i=(y*art.FRAME_W+x)*4;
+      if(!neutral.data[i+3]) continue;
+      if(x < art.FRAME_W/2) lowest[0]=y; else lowest[1]=y;
     }
-    check('neutral arms have equal hand baselines', hands.every(h=>h.length) && Math.max(...hands[0])===Math.max(...hands[1]), hands.map(h=>h.length?Math.max(...h):null));
+    check('left and right legs plant on the same floor', lowest[0]!==null && lowest[0]===lowest[1], lowest);
     check('dedicated idle frame exists', typeof art.idleFrame==='function');
     check('walking has a full eight-phase cycle', art.WALK_FRAME_COUNT===8);
     const n = art.WORK_FRAME_COUNT ?? 2;
