@@ -133,8 +133,7 @@ const HAT = '#8a6a3f';
 const HAT_DARK = '#6b4f2e';
 const STRAP = '#5a3d24';
 const BUCKLE = '#d9b34a';
-const BOOT = '#7a4f2e';
-const BOOT_DARK = '#5a3820';
+const FIN_DARK = '#33565f';
 const APRON = '#ad9270';
 const APRON_DARK = '#8a7454';
 
@@ -206,29 +205,27 @@ function drawFrame(look: Look, facing: Facing, mode: Mode, phase: number): Paint
   const blink = (idle || sitting) && phase === 2 || reaction && phase === 2;
   const hairDark = shade(look.hair, 0.7);
   const skinDark = shade(look.skin, 0.82);
-  const pantsDark = shade(look.pants, 0.78);
   const hand = (point: Point, far = false) => rect(point.x, point.y, 2, 2, far ? skinDark : look.skin);
 
-  // Legs keep the original foot spacing and grounded baseline. Side legs
-  // separate fore/aft; front/back legs instead project that depth vertically.
-  const leg = (hipX: number, footX: number, lift: number, far: boolean) => {
-    stroke({ x: hipX, y: 21 }, { x: footX, y: 26 - lift }, far ? pantsDark : look.pants, 3);
-    rect(footX - (side ? 1 : 0), 26 - lift, 4, 3, far ? BOOT_DARK : BOOT);
-    rect(footX - (side ? 1 : 0), 28 - lift, 4, 1, BOOT_DARK);
+  // Tail, not legs. The residents swim: where the legs and boots were there is
+  // a single tapered fin that trails with the stroke, so the silhouette reads
+  // as a merfolk under the water rather than a villager standing on a road.
+  // The caudal fin beats on a slow phase so it moves as they do.
+  const tail = (baseX: number, lift: number) => {
+    for (let i = 0; i < 8; i++) {
+      const t = i / 7;
+      const y = 21 + i - lift;
+      const w = Math.max(1, Math.round(4 * (1 - t * 0.7)));
+      const x = baseX + Math.round(Math.sin(t * 3.1 + phase * 0.8) * 2.2);
+      rect(x, y, w, 1, t > 0.66 ? FIN_DARK : t > 0.33 ? shade(look.pants, 0.78) : look.pants);
+    }
+    const finY = 28 - lift;
+    const finX = baseX + Math.round(Math.sin(3.1 + phase * 0.8) * 2.2);
+    rect(finX - 2, finY, 6, 1, look.pants);
+    rect(finX - 1, finY + 1, 5, 1, FIN_DARK);
+    rect(finX + 1, finY + 2, 2, 1, FIN_DARK);
   };
-  if (sitting) {
-    rect(side ? 4 : 5, 24, side ? 9 : 10, 3, look.pants);
-    rect(side ? 3 : 5, 26, 3, 3, BOOT);
-    rect(side ? 8 : 12, 26, 3, 3, BOOT);
-    rect(side ? 3 : 5, 28, 3, 1, BOOT_DARK);
-    rect(side ? 8 : 12, 28, 3, 1, BOOT_DARK);
-  } else if (side) {
-    leg(10, 10 - (walking ? gait.reach : 0), walking ? gait.farLift : 0, true);
-    leg(7, 7 + (walking ? gait.reach : 0), walking ? gait.nearLift : 0, false);
-  } else {
-    leg(5, 5, walking ? gait.nearLift : 0, back);
-    leg(11, 11, walking ? gait.farLift : 0, !back);
-  }
+  tail(side ? 8 : 8, walking ? gait.nearLift : sitting ? 3 : 0);
 
   // A weight transfer, not a perpetual vertical idle bounce.
   lean = idle && (phase === 1 || phase === 2) ? (side ? -1 : 1)
