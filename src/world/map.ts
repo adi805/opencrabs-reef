@@ -121,7 +121,15 @@ export function buildTownLocal(): TownMap {
   // packed-sand causeways. A straight channel with plank spans was the single
   // strongest land tell left in the frame: nothing underwater has bridges.
   const putWater = (x: number, y: number) => water.add(key(x, y));
-  stroke([{ x: 60, y: 0 }, { x: 59, y: 6 }, { x: 61, y: 12 }, { x: 58, y: 18 }, { x: 60, y: 24 }, { x: 58, y: 30 }, { x: 61, y: 36 }, { x: 59, y: 41 }], 5, putWater);
+  // Open water, not a canal. A narrow strip running the full height of the map
+  // reads as a river with a current, and a river frames everything beside it as
+  // dry land: it was the single strongest land tell left in the frame. The east
+  // of the reef flat is simply lagoon, meeting the town at an irregular shore,
+  // so the lanes end at water instead of crossing it on a span.
+  for (let y = 0; y < LOCAL_H; y++) {
+    const shore = 56 + Math.round(Math.sin(y * 0.47) * 2.4 + Math.sin(y * 0.15 + 1.1) * 1.7);
+    for (let x = shore; x < LOCAL_W; x++) putWater(x, y);
+  }
   // Basins where the channel widens, plus the old pond folded into one of them.
   for (const [cx, cy, rr] of [[60, 5, 5], [59, 20, 5.5], [60, 34, 5]] as const) {
     for (let y = Math.max(0, cy - 7); y <= Math.min(LOCAL_H - 1, cy + 7); y++) {
@@ -239,9 +247,19 @@ export function buildTownLocal(): TownMap {
   buildings[1]!.door = { x: 10, y: 11 };
   buildings[2]!.door = { x: 51, y: 11 };
   const homes: Building[] = [];
-  [3, 10, 17, 24, 36, 43, 50].forEach((hx, i) => {
-    const h = mk(`home-${i}`, 'house', hx, 35, 5, 4, `House ${i + 1}`);
-    h.porch = [{ x: hx, y: 39 }, { x: hx + 4, y: 39 }];
+  // Scattered burrows, not a suburban terrace. Seven identical houses on one
+  // straight row at y=35 was the single strongest land tell left in the frame:
+  // a rigid grid of front doors facing a walkway reads as a village street no
+  // matter what the walls are painted with. Each home is offset in y as well as
+  // x, and the widths vary, so the row never resolves into a line. `hy` stays
+  // in 33..35 so the three-row approach below each footprint still reaches the
+  // home street at y=39 and every door stays connected.
+  const homeSpots: readonly (readonly [number, number, number])[] = [
+    [2, 34, 5], [10, 33, 6], [16, 35, 4], [23, 33, 5], [35, 35, 6], [43, 33, 4], [49, 34, 5],
+  ];
+  homeSpots.forEach(([hx, hy, hw], i) => {
+    const h = mk(`home-${i}`, 'house', hx, hy, hw, 4, `House ${i + 1}`);
+    h.porch = [{ x: hx, y: hy + 4 }, { x: hx + hw - 1, y: hy + 4 }];
     homes.push(h);
   });
 
@@ -439,16 +457,19 @@ export function buildTownLocal(): TownMap {
       // than a canal threading a green. Each sits in ground that lies open
       // between the lanes; the occupancy guard above keeps every road, station
       // and footprint dry, so the pools read as flooded reef flats and the
-      // causeways between them stay walkable.
+      // causeways between them stay walkable. The radii are deliberately wide:
+      // at the old size water covered only ~16% of the frame, which is why the
+      // scene still read as land with ponds on it.
       const basin =
-        Math.hypot((x - 9) / 5.5, (y - 17.5) / 3) < 1 ||
-        Math.hypot((x - 51) / 6, (y - 17.5) / 3) < 1 ||
-        Math.hypot((x - 21) / 5, (y - 6.5) / 4.5) < 1 ||
-        Math.hypot((x - 41) / 5, (y - 6.5) / 4.5) < 1 ||
-        Math.hypot((x - 10) / 7, (y - 32.5) / 2.5) < 1 ||
-        Math.hypot((x - 50) / 7, (y - 32.5) / 2.5) < 1;
+        Math.hypot((x - 9) / 8.5, (y - 17.5) / 5) < 1 ||
+        Math.hypot((x - 51) / 9, (y - 17.5) / 5) < 1 ||
+        Math.hypot((x - 21) / 8, (y - 6.5) / 6.5) < 1 ||
+        Math.hypot((x - 41) / 8, (y - 6.5) / 6.5) < 1 ||
+        Math.hypot((x - 10) / 11, (y - 32.5) / 4.5) < 1 ||
+        Math.hypot((x - 50) / 11, (y - 32.5) / 4.5) < 1 ||
+        Math.hypot((x - 31) / 7, (y - 33.5) / 4) < 1;
       const blob = Math.sin(x * 0.31) * Math.cos(y * 0.27) + Math.sin((x + y) * 0.13);
-      if (!basin && (blob < 0.2 || pools() > 0.6)) continue;
+      if (!basin && (blob < 0.05 || pools() > 0.75)) continue;
       ground[y]![x] = pools() < 0.5 ? T.water : T.water2;
       water.add(k);
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
