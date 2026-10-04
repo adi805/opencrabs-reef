@@ -148,7 +148,7 @@ function renderStatus(): void {
       const o = source.omitted?.();
       if (o && o.stale + o.departed > 0) text += ` · ${o.stale + o.departed} past sessions not shown`;
     }
-    if (st === 'disconnected') text += ' · run hermes town start on the Hermes host';
+    if (st === 'disconnected') text += ' · start the local bridge to stream live events';
   }
   statusEl.textContent = text;
   const verified = (source.bridge?.()?.receivedEvents ?? 0) > 0;
