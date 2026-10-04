@@ -176,13 +176,24 @@ export function buildTownLocal(): TownMap {
   // as sea floor. Keep a sand rim, and the streets that cross it, as walkable
   // causeways so resident pathing still reaches every station, and flood the
   // middle into a shallow lagoon.
-  const square = { x: 22, y: 16, w: 19, h: 12 };
-  const RIM = 2;
+  // The basin shore wobbles with angle instead of following the tile grid. A
+  // rectangular lagoon still read as a man-made plaza: the corner tiles gave it
+  // away no matter what the water was painted with.
+  const sqCx = 31.5;
+  const sqCy = 22;
+  const sqRx = 9.8;
+  const sqRy = 6.4;
+  const shoreRadius = (x: number, y: number) => {
+    const a = Math.atan2(y + 0.5 - sqCy, x + 0.5 - sqCx);
+    return 1 + 0.17 * Math.sin(a * 3 + 0.7) + 0.11 * Math.sin(a * 5 - 1.9) + 0.07 * Math.sin(a * 7 + 2.3);
+  };
+  const RIM = 0.78; // inner fraction of the basin that floods
   let n = 0;
   for (let y = 0; y < LOCAL_H; y++) for (let x = 0; x < LOCAL_W; x++) {
     const k = key(x, y);
-    const inSquare = x >= square.x && x < square.x + square.w && y >= square.y && y < square.y + square.h;
-    const onRim = inSquare && (x < square.x + RIM || x >= square.x + square.w - RIM || y < square.y + RIM || y >= square.y + square.h - RIM);
+    const q = Math.hypot((x + 0.5 - sqCx) / sqRx, (y + 0.5 - sqCy) / sqRy) / shoreRadius(x, y);
+    const inSquare = q <= 1;
+    const onRim = inSquare && q > RIM;
     if (water.has(k) && road.has(k)) ground[y]![x] = (n++ % 9 === 4) ? T.path2 : T.path; // sand causeway, not a bridge
     else if (water.has(k)) ground[y]![x] = (x + y) % 3 ? T.water : T.water2;
     else if (inSquare && !onRim && !road.has(k)) ground[y]![x] = (x + y) % 3 ? T.water : T.water2;
@@ -220,6 +231,16 @@ export function buildTownLocal(): TownMap {
   // retaining wall, which is a garden feature rather than a reef edge.
   for (let x = 1; x < LOCAL_W - 1; x++) {
     const cy = Math.max(13, Math.min(15, 14 + Math.round(Math.sin(x * 0.31) * 1.2 + Math.sin(x * 0.11 + 0.7) * 0.9)));
+    // Break the scarp into buttresses. A band that runs the whole map reads as
+    // a built retaining wall however much its edge wanders, so leave eroded
+    // gaps where the rock has slumped into a walkable rubble slope instead.
+    if (Math.sin(x * 0.083 + 1.3) > 0.45) {
+      for (let y = cy; y <= 15; y++) {
+        if (water.has(key(x, y)) || road.has(key(x, y))) continue;
+        ground[y]![x] = (x + y) % 3 ? T.pathEdge : T.pathStones;
+      }
+      continue;
+    }
     for (let y = cy; y <= 15; y++) {
       if (water.has(key(x, y))) continue;
       if (road.has(key(x, y))) { ground[y]![x] = T.path2; continue; }
