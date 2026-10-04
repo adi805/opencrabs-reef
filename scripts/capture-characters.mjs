@@ -7,17 +7,21 @@ import { chromium } from 'playwright';
 
 const out='output/playwright/characters';
 await mkdir(out,{recursive:true});
-const dev=await createServer({server:{host:'127.0.0.1',port:5195,strictPort:true}});
+// Fixed ports turn an abandoned run into a blocker for the next one, so let
+// vite and preview move on and read the addresses back from them.
+const dev=await createServer({server:{host:'127.0.0.1',port:5195,strictPort:false}});
 await dev.listen();
-const prod=await preview({preview:{host:'127.0.0.1',port:5196,strictPort:true}});
+const devOrigin=dev.resolvedUrls?.local?.[0] ?? 'http://127.0.0.1:5195/';
+const prod=await preview({preview:{host:'127.0.0.1',port:5196,strictPort:false}});
+const prodOrigin=prod.resolvedUrls?.local?.[0] ?? 'http://127.0.0.1:5196/';
 let browser;
 try {
   browser=await chromium.launch({headless:true});
   const page=await browser.newPage({viewport:{width:1440,height:900}});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/api/town/**',route=>route.abort());
-  await page.goto('http://127.0.0.1:5195/');
-  await page.waitForFunction(()=>window.__town?.game.scene.getScene('town')?.textures.exists('art-tree0'));
+  await page.goto(devOrigin);
+  await page.waitForFunction(()=>window.__town?.game.scene.getScene('town')?.textures.exists('art-tree0'),null,{timeout:120000});
   const exported=await page.evaluate(async()=>{
     const a=await import('/src/art/characters.ts');
     const roles=['coordinator','research','fabrication','review','tooling','general','scheduled'];
@@ -36,8 +40,8 @@ try {
   });
   for(const sheet of exported.sheets){await writeFile(`${out}/${sheet.role}.png`,Buffer.from(sheet.png.split(',')[1],'base64'));delete sheet.png;}
   await writeFile(`${out}/atlas-metadata.json`,JSON.stringify(exported,null,2));
-  await page.goto('http://127.0.0.1:5196/?hour=17');
-  await page.waitForFunction(()=>window.__town?.game.scene.getScene('town')?.textures.exists('art-tree0'));
+  await page.goto(`${prodOrigin}?hour=17`);
+  await page.waitForFunction(()=>window.__town?.game.scene.getScene('town')?.textures.exists('art-tree0'),null,{timeout:120000});
   const fixture=await page.evaluate(()=>{
     const {sim,game,map}=window.__town,s=game.scene.getScene('town');sim.reset();s.setDirector(false);
     const id='h/main/000000000000cafe';
