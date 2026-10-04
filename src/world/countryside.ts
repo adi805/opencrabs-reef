@@ -331,15 +331,14 @@ export function buildCountryside(local: TownMap): TownMap {
     block(x, y);
   }
 
-  // Riverbank vignettes sit outside the walkable channel and bridge approaches.
+  // Riverbank vignettes sit outside the walkable channel. T.bridge is no longer
+  // placed anywhere, so the old "keep clear of a bridge approach" guard below
+  // could never fire; it is gone with the bridges.
   const wet = new Set<number>([T.water, T.water2, T.water3, T.waterLily0, T.waterLily1, T.waterStone]);
   for (let y = 2; y < MAP_H - 2; y++) for (let x = 2; x < MAP_W - 2; x++) {
-    if (wet.has(ground[y]![x]!) || ground[y]![x] === T.bridge || r() > 0.33) continue;
+    if (wet.has(ground[y]![x]!) || r() > 0.33) continue;
     if (![[-1, 0], [1, 0], [0, -1], [0, 1]].some(([dx, dy]) => wet.has(ground[y + dy!]![x + dx!]!))) continue;
     if ([...buildings, ...homes].some(b => x >= b.x - 1 && x <= b.x + b.w && y >= b.y - 1 && y <= b.y + b.h + 1)) continue;
-    let bridgeNearby = false;
-    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (ground[y + dy]?.[x + dx] === T.bridge) bridgeNearby = true;
-    if (bridgeNearby) continue;
     extra.push({ kind: r() < 0.8 ? 'rock' : 'bush', x: x * TILE - 4, y: y * TILE - 5, blocks: [] });
   }
 
