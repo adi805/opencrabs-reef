@@ -166,20 +166,24 @@ const base = document.createElement('canvas');
 base.width = MAP_W; base.height = MAP_H;
 {
   const c = base.getContext('2d')!;
+  // Reef palette, matched to the terrain families. An earthy green-and-brown
+  // minimap is the single cheapest way for the whole HUD to contradict the
+  // frame: the map inset reads as an overland RPG no matter what the world
+  // underneath it looks like.
   for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
     const g = map.ground[y]![x]!;
-    c.fillStyle = g === T.water || g === T.water2 || g === T.water3 ? '#2f5566'
-      : g === T.cobble || g === T.cobble2 ? '#6f6a68'
-      : g === T.path || g === T.path2 || g === T.bridge ? '#8a6a44'
-      : g === T.trail || g === T.trail2 ? '#6f6a3e'
-      : g === T.grassDry || g === T.grassDry2 || g === T.seed0 ? '#7a7a3c'
-      : g === T.grassWet || g === T.grassWet2 || g === T.mudWet ? '#3f5a30'
-      : g === T.ledge || g === T.cliff ? '#5a4a3e'
-      : '#4f6b34';
+    c.fillStyle = g === T.water || g === T.water2 || g === T.water3 ? '#608496'
+      : g === T.cobble || g === T.cobble2 ? '#748a98'
+      : g === T.path || g === T.path2 || g === T.bridge ? '#748e98'
+      : g === T.trail || g === T.trail2 ? '#688894'
+      : g === T.grassDry || g === T.grassDry2 || g === T.seed0 ? '#8fa6ac'
+      : g === T.grassWet || g === T.grassWet2 || g === T.mudWet ? '#5f8a80'
+      : g === T.ledge || g === T.cliff ? '#807a7e'
+      : '#70909c';
     c.fillRect(x, y, 1, 1);
   }
-  for (const p of map.props) if (p.kind === 'tree') { c.fillStyle = '#2f5228'; c.fillRect(Math.floor((p.x + 16) / TILE), Math.floor((p.y + 34) / TILE), 1, 1); }
-  for (const b of [...map.buildings, ...map.homes]) { c.fillStyle = b.kind === 'house' ? '#6b3d2a' : '#c9b391'; c.fillRect(b.x, b.y, b.w, b.h); }
+  for (const p of map.props) if (p.kind === 'tree') { c.fillStyle = '#34645c'; c.fillRect(Math.floor((p.x + 16) / TILE), Math.floor((p.y + 34) / TILE), 1, 1); }
+  for (const b of [...map.buildings, ...map.homes]) { c.fillStyle = b.kind === 'house' ? '#4e6a34' : '#8f6f78'; c.fillRect(b.x, b.y, b.w, b.h); }
 }
 const mctx = minimap.getContext('2d')!;
 mctx.imageSmoothingEnabled = false;

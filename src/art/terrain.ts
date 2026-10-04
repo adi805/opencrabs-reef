@@ -157,8 +157,11 @@ export function paintTerrain(map: TownMap): HTMLCanvasElement {
       else if (v < 0.47) { ctx.fillStyle = ['#e0846c', '#cfa0c0', '#f0c882', '#8fd0c8'][Math.floor(r() * 4)]!; ctx.fillRect(x, y - 1, 2, 2); }
     } else if (k === WET_SAND && r() < 0.2) {
       ctx.fillStyle = r() < 0.5 ? '#cdbb96' : '#94825f'; ctx.fillRect(x, y, 2, 1);
-    } else if (k === LAGOON && r() < 0.22) {
-      ctx.fillStyle = 'rgba(150,214,214,.26)'; ctx.fillRect(x, y, 2 + Math.floor(r() * 5), 1);
+    } else if (k === LAGOON && r() < 0.16) {
+      // Faint, and never a straight crest. A dense set of horizontal wave lines
+      // inside a bounded strip is a river seen from above; the whole floor is
+      // already water, so the lagoon only needs a slight drift.
+      ctx.fillStyle = 'rgba(150,214,214,.14)'; ctx.fillRect(x, y, 2 + Math.floor(r() * 5), 1);
     } else if (k === REEF_EDGE && r() < 0.45) {
       for (let j = 0; j < 4; j++) {
         ctx.strokeStyle = j % 2 ? '#4a9a86' : '#1f5f5a';
