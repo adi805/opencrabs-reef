@@ -47,9 +47,9 @@ const BASE: readonly (readonly [number, number, number])[] = [
   [112, 144, 156], // oolite seabed
   // The lagoon was mixed far darker than the seabed, so every flooded pocket
   // read as a pond set into dry ground: the eye takes a hard value step as a
-  // shoreline. Underwater, depth changes are gradual. Lift the water toward the
-  // seabed so it reads as the same surface seen deeper, not a separate body.
-  [78, 120, 142],  // lagoon water
+  // shoreline, and a frame with visible ponds in it is a frame of land. Keep
+  // only a slight deepening so water reads as the same surface seen deeper.
+  [96, 132, 150],  // lagoon water
   [116, 142, 152], // wet packed sand
   [116, 138, 152], // coral-rock paving
   // The algae margin is the old shore rim. At its previous dark green it drew a

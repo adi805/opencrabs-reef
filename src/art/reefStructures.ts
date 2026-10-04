@@ -118,10 +118,32 @@ export function paintCoralWallV(): HTMLCanvasElement {
 export function paintReefRamp(): HTMLCanvasElement {
   const W = 96, H = 64;
   const p = new Painter(W, H);
-  for (let y = 0; y < H; y += 8) {
-    p.rect(0, y, W, 8, y % 16 ? ROCK.body : ROCK.dark);
-    p.rect(0, y, W, 2, ROCK.top);
-    for (let x = (y / 8) % 2 ? 0 : 8; x < W; x += 16) p.rect(x, y + 4, 6, 1, ROCK.dark);
+  const r = mulberry(9203);
+  // A sand ramp, not a flight of steps. Evenly spaced hard treads with tick
+  // marks read as dressed stone masonry the moment the eye finds them, and
+  // this flight sits dead centre in front of the hall. Keep it a slope: soft
+  // sand, a lit crest, and current ripples.
+  for (let y = 0; y < H; y++) {
+    const k = y / H;
+    const base = [124 + Math.round(k * 22), 148 + Math.round(k * 16), 156 + Math.round(k * 12)];
+    p.rect(0, y, W, 1, `rgb(${base[0]},${base[1]},${base[2]})`);
+  }
+  // Ripples: shallow arcs across the slope, never straight risers.
+  for (let i = 0; i < 26; i++) {
+    const y = Math.floor(r() * H), x0 = Math.floor(r() * W);
+    const len = 10 + Math.floor(r() * 26);
+    for (let d = 0; d < len; d++) {
+      const yy = y + Math.round(Math.sin(d * 0.28) * 1.4);
+      if (yy >= 0 && yy < H) p.px(x0 + d, yy, r() < 0.5 ? 'rgba(210,228,224,.20)' : 'rgba(96,124,124,.18)');
+    }
+  }
+  // A few pebbles and weed tufts so the slope is not a blank wedge.
+  for (let i = 0; i < 22; i++) {
+    const x = Math.floor(r() * W), y = Math.floor(r() * H);
+    const c = r();
+    if (c < 0.4) p.disc(x, y, 1, '#b9a884');
+    else if (c < 0.75) p.disc(x, y, 1, '#7fa08c');
+    else p.rect(x, y, 1, 2, '#5d8a6a');
   }
   return submerge(p.canvas);
 }
