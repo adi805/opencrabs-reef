@@ -212,20 +212,38 @@ function drawFrame(look: Look, facing: Facing, mode: Mode, phase: number): Paint
   // as a merfolk under the water rather than a villager standing on a road.
   // The caudal fin beats on a slow phase so it moves as they do.
   const tail = (baseX: number, lift: number) => {
+    const sway = Math.sin(phase * 0.8);
     for (let i = 0; i < 8; i++) {
       const t = i / 7;
       const y = 21 + i - lift;
-      const w = Math.max(1, Math.round(4 * (1 - t * 0.7)));
-      const x = baseX + Math.round(Math.sin(t * 3.1 + phase * 0.8) * 2.2);
+      const w = Math.max(2, Math.round(5 * (1 - t * 0.5)));
+      const x = baseX + Math.round(Math.sin(t * 3.1 + phase * 0.8) * 2.4);
       rect(x, y, w, 1, t > 0.66 ? FIN_DARK : t > 0.33 ? shade(look.pants, 0.78) : look.pants);
     }
+    // Caudal fluke: one solid horizontal fan. A forked fin has two lobes, and
+    // at the 0.5 draw scale two dark lobes side by side read as two boots, so
+    // the forked version put the legs straight back on the sprite. A single
+    // wide blade cannot be mistaken for a pair of feet.
     const finY = 28 - lift;
-    const finX = baseX + Math.round(Math.sin(3.1 + phase * 0.8) * 2.2);
-    rect(finX - 2, finY, 6, 1, look.pants);
-    rect(finX - 1, finY + 1, 5, 1, FIN_DARK);
-    rect(finX + 1, finY + 2, 2, 1, FIN_DARK);
+    const finX = baseX + Math.round(sway * 2.4);
+    for (let d = -5; d <= 5; d++) {
+      const ad = Math.abs(d);
+      const drop = ad < 3 ? 0 : ad < 5 ? 1 : 2;
+      rect(finX + d, finY + drop, 1, 2 - (drop > 1 ? 1 : 0), ad > 3 ? FIN_DARK : look.pants);
+    }
+    rect(finX - 5, finY, 11, 1, FIN_DARK);
   };
   tail(side ? 8 : 8, walking ? gait.nearLift : sitting ? 3 : 0);
+
+  // Dorsal fin along the spine. This is the cue that survives every pose and
+  // every zoom level: nothing that walks on land carries a fin standing off
+  // its back.
+  for (let i = 0; i < 5; i++) {
+    const bx = (side ? 8 : 10) + (side ? -1 : 1) * Math.round(i * 0.25);
+    const by = 15 + oy + i;
+    const hgt = Math.max(1, 3 - Math.round(i * 0.6));
+    rect(bx, by, hgt, 1, i > 2 ? FIN_DARK : '#4a7d8c');
+  }
 
   // A weight transfer, not a perpetual vertical idle bounce.
   lean = idle && (phase === 1 || phase === 2) ? (side ? -1 : 1)
