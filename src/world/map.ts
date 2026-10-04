@@ -286,17 +286,22 @@ export function buildTownLocal(): TownMap {
   const mk = (id: string, kind: BuildingKind, x: number, y: number, w: number, h: number, label: string): Building => ({
     id, kind, x, y, w, h, door: { x: x + Math.floor(w / 2), y: y + h }, porch: [], label,
   });
+  // Deliberately off-band: every building gets its own y, so the seven never
+  // resolve into two straight rows. Two clean bands of buildings was the last
+  // measurable "grid" tell left in the frame, and a band reads as a street plan
+  // no matter what the walls are painted with. Stations move with their building
+  // so each stand keeps its place in front of its own door.
   const buildings: Building[] = [
-    mk('hall', 'hall', 26, 6, 11, 5, 'Reef Hall'),
-    mk('library', 'library', 4, 6, 11, 5, 'Coral Archive'),
+    mk('hall', 'hall', 26, 5, 11, 5, 'Reef Hall'),
+    mk('library', 'library', 4, 7, 11, 5, 'Coral Archive'),
     mk('workshop', 'workshop', 46, 6, 10, 5, 'Shell Workshop'),
     mk('forge', 'forge', 47, 25, 9, 5, 'Vent Forge'),
-    mk('post', 'post', 3, 25, 10, 5, 'Tide Post'),
-    mk('observatory', 'observatory', 16, 25, 7, 5, 'Lighthouse'),
-    mk('tavern', 'tavern', 38, 25, 8, 5, 'Kelp Bar'),
+    mk('post', 'post', 3, 26, 10, 5, 'Tide Post'),
+    mk('observatory', 'observatory', 16, 27, 7, 5, 'Lighthouse'),
+    mk('tavern', 'tavern', 38, 24, 8, 5, 'Kelp Bar'),
   ];
-  buildings[0]!.door = { x: 31, y: 11 };
-  buildings[1]!.door = { x: 10, y: 11 };
+  buildings[0]!.door = { x: 31, y: 10 };
+  buildings[1]!.door = { x: 10, y: 12 };
   buildings[2]!.door = { x: 51, y: 11 };
   const homes: Building[] = [];
   // Scattered burrows, not a suburban terrace. Seven identical houses on one
@@ -325,9 +330,9 @@ export function buildTownLocal(): TownMap {
   st('library', { x: 14, y: 13 }, 'left', 'lectern', 13 * TILE + 1, 13 * TILE - 2);
   st('library', { x: 12, y: 13 }, 'left', 'lectern', 11 * TILE + 1, 13 * TILE - 2);
   st('workshop', { x: 47, y: 13 }, 'right', 'workbench', 48 * TILE - 3, 13 * TILE + 1);
-  st('workshop', { x: 47, y: 15 }, 'right', 'workbench', 48 * TILE - 3, 15 * TILE + 1);
+  st('workshop', { x: 47, y: 12 }, 'right', 'workbench', 48 * TILE - 3, 12 * TILE + 1);
   st('workshop', { x: 55, y: 13 }, 'left', 'workbench', 53 * TILE + 3, 13 * TILE + 1);
-  st('workshop', { x: 55, y: 15 }, 'left', 'workbench', 53 * TILE + 3, 15 * TILE + 1);
+  st('workshop', { x: 55, y: 12 }, 'left', 'workbench', 53 * TILE + 3, 12 * TILE + 1);
   st('forge', { x: 46, y: 31 }, 'right', 'anvil', 47 * TILE, 31 * TILE + 2);
   st('forge', { x: 53, y: 31 }, 'left', 'anvil', 52 * TILE, 31 * TILE + 2);
   st('forge', { x: 45, y: 23 }, 'right', 'anvil', 46 * TILE, 23 * TILE + 2);
@@ -335,11 +340,11 @@ export function buildTownLocal(): TownMap {
   st('post', { x: 5, y: 31 }, 'right', 'postbox', 6 * TILE + 3, 31 * TILE - 4);
   st('post', { x: 12, y: 31 }, 'left', 'postbox', 11 * TILE + 3, 31 * TILE - 4);
   st('post', { x: 5, y: 23 }, 'right', 'crate', 6 * TILE + 2, 23 * TILE + 2);
-  st('observatory', { x: 16, y: 31 }, 'right', 'telescope', 17 * TILE, 31 * TILE - 6);
-  st('observatory', { x: 22, y: 31 }, 'left', 'telescope', 21 * TILE, 31 * TILE - 6);
+  st('observatory', { x: 16, y: 33 }, 'right', 'telescope', 17 * TILE, 33 * TILE - 6);
+  st('observatory', { x: 22, y: 33 }, 'left', 'telescope', 21 * TILE, 33 * TILE - 6);
   st('observatory', { x: 24, y: 28 }, 'up', 'telescope', 24 * TILE, 27 * TILE - 4);
-  st('hall', { x: 27, y: 12 }, 'right', 'desk', 28 * TILE - 2, 12 * TILE + 2);
-  st('hall', { x: 35, y: 12 }, 'left', 'desk', 33 * TILE + 2, 12 * TILE + 2);
+  st('hall', { x: 27, y: 11 }, 'right', 'desk', 28 * TILE - 2, 11 * TILE + 2);
+  st('hall', { x: 35, y: 11 }, 'left', 'desk', 33 * TILE + 2, 11 * TILE + 2);
   st('hall', { x: 25, y: 9 }, 'up', 'desk', 25 * TILE - 2, 8 * TILE + 3);
   st('hall', { x: 37, y: 9 }, 'up', 'desk', 37 * TILE - 2, 8 * TILE + 3);
   st('tavern', { x: 36, y: 28 }, 'down', 'bench', 36 * TILE - 2, 29 * TILE + 2);
@@ -535,6 +540,18 @@ export function buildTownLocal(): TownMap {
 
   // Retire unsupported decoration and its collision footprint together.
   for (let i = props.length - 1; i >= 0; i--) if (!hasWorldSprite(props[i]!.kind)) props.splice(i, 1);
+
+  // Every work stand must sit on ground a resident can actually reach. The
+  // scarp, the lagoon and the plateau all shift whenever the map is remapped,
+  // and a stand left stranded on water or rock is a dead work spot: no
+  // resident can ever walk to it, so the station is silently unusable. Give
+  // each station tile wet-sand footing so every stand keeps a place to stand
+  // on the reef flat.
+  for (const s of stations) {
+    if (!inb(s.tile.x, s.tile.y)) continue;
+    const sg = ground[s.tile.y]![s.tile.x]!;
+    if (sg === T.water || sg === T.water2 || sg === T.cliff) ground[s.tile.y]![s.tile.x] = T.path2;
+  }
 
   // ---- walkability
   const cost = new Uint8Array(LOCAL_W * LOCAL_H);
